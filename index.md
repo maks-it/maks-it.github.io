@@ -1,37 +1,28 @@
-## Welcome to GitHub Pages
+# CentOS Server configurations
 
-You can use the [editor on GitHub](https://github.com/maks-it/maks-it.github.io/edit/main/index.md) to maintain and preview the content for your website in Markdown files.
+CentOS 7 Asp.Net Core Web Server Configuration documentation (Maks-IT.com)
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+## Software install
 
-### Markdown
+[1. Prerequisite Software](CentOS-7-Usefull-software-Installation)
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+## Web serer
 
-```markdown
-Syntax highlighted code block
+[2. NodeJS Setup](CentOS-7-Setup-WEB-Server-Node-js)
+[3. Nginx Setup](CentOS-7-Setup-WEB-Server-NGINX)
+[4. .Net Core Setup](CentOS-Setup-7-.Net-Core)
+[5. Host Asp.Net Core on Nginx](CentOS7-Host-ASP.NET-Core-on-Linux-with-Nginx)
+[6. SELinux settings](CentOS-7-SELinux-Settings)
 
-# Header 1
-## Header 2
-### Header 3
 
-- Bulleted
-- List
+## Sql Server
 
-1. Numbered
-2. List
+[6. MySQL Setup](CentOS-7-Setup-WEB-Server-MySQL)
 
-**Bold** and _Italic_ and `Code` text
+## Appendix
 
-[Link](url) and ![Image](src)
-```
+[7. PHP Setup](CentOS-7-Setup-WEB-Server-PHP)
+[7. Enable PHP](CentOS-7-Setup-Nginx-PHP)
 
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
 
-### Jekyll Themes
 
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/maks-it/maks-it.github.io/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
-
-### Support or Contact
-
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://github.com/contact) and we’ll help you sort it out.
