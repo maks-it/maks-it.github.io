@@ -26,8 +26,8 @@ CentOS 7 Asp.Net Core Web Server Configuration documentation (Maks-IT.com)
 
 ## PHP
 
-[PHP Setup](articles/CentOS-7-Setup-WEB-Server-PHP)
-[Enable PHP](articles/CentOS-7-Setup-Nginx-PHP)
+* [PHP Setup](articles/CentOS-7-Setup-WEB-Server-PHP)
+* [Enable PHP](articles/CentOS-7-Setup-Nginx-PHP)
 
 
 
