@@ -19,6 +19,7 @@ CentOS 7 Asp.Net Core Web Server Configuration documentation (Maks-IT.com)
 
 [MySQL Setup](articles/CentOS-7-Setup-WEB-Server-MySQL)
 
+[Gnome setup bridge](articles/Gnome-setup-bridge.md)
 
 ## Git
 

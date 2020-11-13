@@ -4,6 +4,14 @@ Security-Enhanced Linux (SELinux) is a Linux kernel security module that provide
 
 SELinux is a set of kernel modifications and user-space tools that have been added to various Linux distributions. Its architecture strives to separate enforcement of security decisions from the security policy, and streamlines the amount of software involved with security policy enforcement. The key concepts underlying SELinux can be traced to several earlier projects by the United States National Security Agency (NSA).
 
+## GUI Selinux tools
+
+```bash
+$ dnf install policycoreutils-gui
+$ dnf install setroubleshoot
+```
+
+
 ## SELinux allow NGINX
 
 Run to check SELinux status
