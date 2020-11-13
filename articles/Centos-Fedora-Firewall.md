@@ -1,5 +1,11 @@
 # Centos / Fedora Firewall
 
+## GUI Config tools
+
+```bash
+$ sudo dnf install firewall-config
+```
+
 <https://www.certdepot.net/rhel7-get-started-firewalld/>
 
 ## Remove firewall rules
