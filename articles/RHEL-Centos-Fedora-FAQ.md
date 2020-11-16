@@ -189,6 +189,19 @@ git checkout master
 git merge my-temporary-work
 ```
 
+## Switch to text or graphical user interface
+
+Graphical user interface:
+
+```bash
+systemctl set-default graphical.target
+```
+
+Text user interface:
+```bash
+systemctl set-default multi-user.target
+```
+
 
 
 ## RPM
