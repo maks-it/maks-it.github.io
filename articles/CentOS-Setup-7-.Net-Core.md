@@ -13,6 +13,11 @@ sudo yum update
 sudo yum install dotnet-sdk-2.2
 ```
 
+```bash
+$ sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
+$ sudo wget -O /etc/yum.repos.d/microsoft-prod.repo https://packages.microsoft.com/config/fedora/33/prod.repo
+```
+
 ## Create React app
 
 ``` bash
