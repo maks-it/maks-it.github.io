@@ -106,7 +106,7 @@ By default PostgreSQL uses IDENT-based authentication and this will never allow 
 You can identify the location of the pg_hba.conf file by running the following command in psql command line, you'll need to be logged in as a superuser in the database:
 
 ```bash
-postgres=# show hba_file ;
+postgres=# show hba_file;
  hba_file
 --------------------------------------
  /etc/postgresql/9.3/main/pg_hba.conf
@@ -118,6 +118,20 @@ set for example:
 ```bash
 local    all    all    trust
 host    all    127.0.0.1/32    trust
+```
+
+
+```bash
+postgres=# show config_file;
+ config_file
+--------------------------------------
+/etc/postgresql/9.3/main/postgresql.conf
+(1 row)
+```
+
+set:
+```bash
+listen_addresses = '*'
 ```
 
 Don't forget to restart PostgreSQL after saving your changes to the file.
