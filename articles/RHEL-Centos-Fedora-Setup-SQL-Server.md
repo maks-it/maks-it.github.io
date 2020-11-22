@@ -198,3 +198,39 @@ Restart the server
 ```bash
 sudo systemctl restart mssql-server
 ```
+
+## Reset SA password
+
+Connect SQL Server using command-line tool with the existing password (The purpose of this step to show you my current “sa” password. At the end, once I reset the “sa” password, you will see that I shall be using a new “sa” password to connect to SQL Server. If you are dealing with real time issue, you can ignore this step.)
+
+```bash
+sqlcmd -S <SQLInstanceName>-U <UserName> -P <Password>
+```
+
+To change the “sa” password, you have to first Stop SQL Server service which is running on the Linux machine. Let’s stop the SQL Server and verify the status of SQL Server.
+
+```bash
+sudo systemctl stop mssql-server
+sudo systemctl status mssql-server
+```
+
+Reset the “sa” password by key new strong password now.
+
+```bash
+/opt/mssql/bin/mssql-conf set-sa-password
+```
+
+>Note: When you are resetting/changing “sa” password using sqlcmd in a bash terminal,  you need to be escaped or not used the character “$” because it is a special character in bash.
+
+Start and verify the status of SQL Server Service
+
+```bash
+sudo systemctl start mssql-server
+sudo systemctl status mssql-server
+```
+
+Let’s connect SQL Server with the new password.
+
+```bash
+sqlcmd -S <SQLInstanceName>-U <UserName> -P <Password>
+```
