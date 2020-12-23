@@ -412,3 +412,50 @@ The process may take several minutes, depending on the size of the ISO file and 
 1094+0 records out
 4588568576 bytes (4.6 GB) copied, 30.523 s, 150 MB/s
 ```
+
+## System limit on watched files by a user
+
+The system has a limit to how many files can be watched by a user. You can run out of watches pretty quickly if you have Grunt running with other programs like Dropbox. This command increases the maximum amount of watches a user can have.
+
+```  bash
+echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p
+```
+
+For Arch Linux add this line to /etc/sysctl.d/99-sysctl.conf:
+
+``` bash
+fs.inotify.max_user_watches=524288
+```
+
+>>>
+Explanation: echo fs.inotify.max_user_watches=524288 | sudo tee -a /etc/sysctl.conf
+writes at the end of the file /etc/sysctl.conf the line "fs.inotify.max_user_watches=524288"
+
+sudo sysctl -p reconfigures the kernel at runtime, loading the file /etc/sysctl.conf as a parameter
+>>>
+
+For Arch Linux add fs.inotify.max_user_watches=524288 to /etc/sysctl.d/99-sysctl.conf and then execute sysctl --system. This will also persist across reboots. For more details: wiki.archlinux.org/index.php/Sysctl
+
+npm dedupe cleared it up for me.
+
+>>>
+See also [this link](https://code.visualstudio.com/docs/setup/linux#_visual-studio-code-is-unable-to-watch-for-file-changes-in-this-large-workspace-error-enospc)
+>>>
+
+
+echo 524288 | sudo tee -a /proc/sys/fs/inotify/max_user_watches
+echo 524288 | sudo tee -a /proc/sys/fs/inotify/max_user_instances
+echo 524288 | sudo tee -a /proc/sys/fs/inotify/max_queued_events
+
+
+nano /etc/sysctl.d/99-sysctl.conf
+
+fs.inotify.max_user_watches = 524288
+fs.inotify.max_queued_events = 524288
+fs.inotify.max_user_instances = 524288
+
+
+
+sudo sysctl -p
+
+
