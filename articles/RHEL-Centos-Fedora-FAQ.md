@@ -226,6 +226,10 @@ https://www.spice-space.org/download.html
 Virtual Machine Manager Powered by libvirt
 https://virt-manager.org/
 
+```bash
+sudo usermod -a -G libvirt maksym
+```
+
 ## Kernel headers
 
 ```bash
