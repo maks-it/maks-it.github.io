@@ -1,10 +1,25 @@
 # MAKS-IT Free setup guides
 
-CentOS 7 Asp.Net Core Web Server Configuration documentation (Maks-IT.com)
+Configuration tutorials by Maks-IT.com
 
-## Software install
+## Debian 11
+
+## RHEL/CentOS/Fedora
 
 * [Prerequisite Software](articles/CentOS-7-Usefull-software-Installation)
+
+### MS SQL Server
+
+[MySQL Setup](articles/CentOS-7-Setup-WEB-Server-MySQL)
+
+
+## Microsot Windows
+
+
+## Git
+
+[Git tutorial](articles/Git-Tutorial)
+
 
 ## Web serer
 
@@ -15,15 +30,12 @@ CentOS 7 Asp.Net Core Web Server Configuration documentation (Maks-IT.com)
 * [SELinux settings](articles/CentOS-7-SELinux-Settings)
 
 
-## Sql Server
 
-[MySQL Setup](articles/CentOS-7-Setup-WEB-Server-MySQL)
+
 
 [Gnome setup bridge](articles/Gnome-setup-bridge.md)
 
-## Git
 
-[Git tutorial](articles/Git-Tutorial)
 
 ## PHP
 
