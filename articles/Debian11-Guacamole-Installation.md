@@ -1,6 +1,6 @@
 # Guacamole Debian 11 installation guide
 
-## Mnadatory packages
+## Mandatory packages
 
 ```bash
 sudo apt install libcairo2-dev libjpeg62-turbo-dev libpng-dev libtool-bin libossp-uuid-dev -y
