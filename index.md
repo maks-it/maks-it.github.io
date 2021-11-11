@@ -4,9 +4,11 @@ Configuration tutorials by Maks-IT.com
 
 ## Debian 11
 
+[Prerequisite Software](articles/Debian11-Guacamole-Installation)
+
 ## RHEL/CentOS/Fedora
 
-* [Prerequisite Software](articles/CentOS-7-Usefull-software-Installation)
+[Prerequisite Software](articles/CentOS-7-Usefull-software-Installation)
 
 ### MS SQL Server
 
