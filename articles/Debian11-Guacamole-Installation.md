@@ -202,6 +202,7 @@ Apache Guacamole server is now setup. You can access it from web browser using t
 http://maks-it.com:8080/guacamole
 ```
 
+## Common issues and workarounds
 
 
 
@@ -209,9 +210,9 @@ http://maks-it.com:8080/guacamole
 
 
 
+### If you encounter CONNECTION ERROR, and upon checking the logs
 
-If you encounter CONNECTION ERROR, and upon checking the logs;
-
+```bash
 tail -f /var/log/syslog
 Sep 11 21:45:45 debian11 guacd[1109]: FreeRDP initialization may fail: The current user's home directory ("/usr/sbin") is not writable, but FreeRDP generally requires a writable home directory for storage of configuration files and certificates.
 Sep 11 21:45:45 debian11 guacd[1109]: guacd[1109]: WARNING:#011FreeRDP initialization may fail: The current user's home directory ("/usr/sbin") is not writable, but FreeRDP generally requires a writable home directory for storage of configuration files and certificates.
@@ -219,7 +220,9 @@ Sep 11 21:45:45 debian11 guacd[1109]: No security mode specified. Defaulting to 
 Sep 11 21:45:45 debian11 guacd[1109]: guacd[1109]: INFO:#011No security mode specified. Defaulting to security mode negotiation with server.
 Sep 11 21:45:45 debian11 guacd[1109]: Resize method: none
 Sep 11 21:45:45 debian11 guacd[1109]: guacd[1109]: INFO:#011RDP server closed/refused connection: Security negotiation failed (wrong security type?)
-Then fix it as follows;
+```
+
+Then fix it as follows:
 
 Guacamole server (guacd) service runs as user daemon by default.
 
@@ -232,18 +235,52 @@ daemon       804  0.0  3.9 359520 39488 ?        Sl   21:41   0:00 /usr/local/sb
 
 Create a guacd system user account which can be used to run guacd instead of running as daemon user.
 
+```bash
 useradd -M -d /var/lib/guacd/ -r -s /sbin/nologin -c "Guacd User" guacd
+```
+
+```bash
 mkdir /var/lib/guacd
+```
+
+```bash
 chown -R guacd: /var/lib/guacd
-Next, update the Guacd service user;
+```
 
+Next, update the Guacd service user:
+
+```bash
 sed -i 's/daemon/guacd/' /etc/systemd/system/guacd.service
-Reload systemd daemon;
+```
 
+Reload systemd daemon:
+
+```bash
 systemctl daemon-reload
-Restart Guacd Service;
+```
 
+Restart Guacd Service:
+
+```bash
 systemctl restart guacd
-At this point, RDP should work without any issues.
+```
 
-You can now add more connections to your Guacamole. Check Guacamole connections page on how to configure. That marks the end of our guide on Install Guacamole on Debian 11.
+### Windows 10 and Windows Server 2016 RDP
+
+```bash
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp]
+```
+
+Change “SecurityLayer” value to dword:00000001
+Verify “UserAuthentication” value is dword:0x00000000
+
+This should work without reboot
+
+Or use NLA
+
+If you want to use NLA you have to set SecurityMode to NLA of the connection. And you have to set username and password!
+
+If your username and password in guacamole are the same on windows machine (if you have active directory and ldap auth in guacamole) you can use:
+
+Username: ${GUAC_USERNAME}
+Password: ${GUAC_PASSWORD}
