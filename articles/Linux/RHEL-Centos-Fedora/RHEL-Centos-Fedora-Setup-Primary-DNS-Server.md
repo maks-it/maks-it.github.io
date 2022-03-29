@@ -28,7 +28,51 @@ IP Address           : 192.168.0.1/24
 dnf install bind bind-utils -y
 ```
 
-2. configure DNS
+
+2. Generate RNDC key (but probably it already exists)
+
+```bash
+sudo rndc-confgen
+```
+
+```bash
+# Start of rndc.conf
+key "rndc-key" {
+        algorithm hmac-sha256;
+        secret "FswCGbOmsP0rtjk3UWteD0J4TxJZrVr3YJxt5u4lKA0=";
+};
+
+options {
+        default-key "rndc-key";
+        default-server 127.0.0.1;
+        default-port 953;
+};
+# End of rndc.conf
+
+# Use with the following in named.conf, adjusting the allow list as needed:
+# key "rndc-key" {
+#       algorithm hmac-sha256;
+#       secret "FswCGbOmsP0rtjk3UWteD0J4TxJZrVr3YJxt5u4lKA0=";
+# };
+# 
+# controls {
+#       inet 127.0.0.1 port 953
+#               allow { 127.0.0.1; } keys { "rndc-key"; };
+# };
+# End of named.conf
+```
+
+Insert the generated RNDC configuration stanza into the file `/etc/rndc.key`. Your code will be different:
+
+```bash
+key "rndc-key" {
+        algorithm hmac-sha256;
+        secret "FswCGbOmsP0rtjk3UWteD0J4TxJZrVr3YJxt5u4lKA0=";
+};
+```
+
+
+3. configure DNS
 
 Edit `named.conf`:
 
@@ -94,16 +138,22 @@ zone "." IN {
         file "named.ca";
 };
 
+include "/etc/rndc.key"
+controls {
+       inet 127.0.0.1 port 953
+       allow { 127.0.0.1; } keys { "rndc-key"; };
+};
+
 zone "corp.maks-it.com" IN {
         type master;
-        file "forward.nc";
-        allow-update { none; };
+        file "/var/lib/named/forward.nc";
+        allow-update { key rndc-key; };
 };
 
 zone "0.168.192.in-addr.arpa" IN {
         type master;
-        file "reverse.nc";
-        allow-update { none; };
+        file "/var/lib/named/reverse.nc";
+        allow-update { key rndc-key; };
 };
 
 include "/etc/named.rfc1912.zones";
@@ -111,15 +161,13 @@ include "/etc/named.root.key";
 
 ```
 
-1. create Zone files (are necessary to setup forward and reverse zones).
-
-3.1. Forward Zone file:
+4. Forward Zone file:
 
 ```bash
-nano /var/named/forward.nc
+nano /var/lib/named/forward.nc
 ```
 
-```
+```bash
 $TTL 86400
 @       IN  SOA     netserver.corp.maks-it.com. router.corp.maks-it.com. (
         2011071001  ;Serial
@@ -153,16 +201,15 @@ srvmta0001      IN  A   192.168.0.5
 ;KMS Server
 srvgen0001      IN  A   192.168.0.1
 _vlmcs._tcp.nc.local. 3600 IN SRV 10 0 1688 srvgen0001.nc.local.
-
-
 ```
 
-3.2 Reverse Zone file:
-```
-nano /var/named/reverse.nc
+5. Reverse Zone file:
+
+```bash
+nano /var/lib/named/reverse.nc
 ```
 
-```
+```bash
 $TTL 86400
 
 @       IN  SOA     netserver.corp.maks-it.com. root.corp.maks-it.com. (
@@ -182,23 +229,62 @@ router    IN  A   192.168.0.1
 
 101     IN  PTR         netserver.corp.maks-it.com.
 102     IN  PTR         router.corp.maks-it.com.
+```
 
+6. Zone files write permissions
+
+
+
+```bash
+sudo chown named:named /var/lib/named -R 
+```
+
+Fix Selinux `named` rules to write on zone files:
+
+```bash
+semanage fcontext --add --type named_zone_t '/var/lib/named(/.*)?'
+restorecon -rvF /var/lib/named
+```
+
+check if everything is fine:
+
+```bash
+semanage fcontext -l | grep '/var/lib/named'
+```
+
+your output should be like this:
+
+```bash
+/var/lib/named(/.*)?    all files    system_u:object_r:named_zone_t:s0 
+```
+
+and
+
+```bash
+ls -lZ /var/lib/named
+
+total 12
+-rw-r--r--. 1 named named system_u:object_r:named_zone_t:s0  692 Mar 31 21:55 forward.nc
+-rw-r--r--. 1 named named system_u:object_r:named_zone_t:s0 3078 Mar 31 21:43 forward.nc.jnl
+-rw-rw-r--. 1 named named system_u:object_r:named_zone_t:s0  545 Mar 29 21:08 reverse.nc
 ```
 
 1. add firewall rules:
-```
+
+```bash
 firewall-cmd --permanent --add-port=53/tcp
 firewall-cmd --permanent --add-port=53/udp
 ```
 
-5. restart firewall:
-```
+8. restart firewall:
+   
+```bash
 firewall-cmd --reload
 ```
 
-6. configuring Permissions, Ownership, and SELinux
+9. configuring Permissions, Ownership, and SELinux
 
-```
+```bash
 chgrp named -R /var/named
 chown -v root:named /etc/named.conf
 restorecon -rv /var/named
@@ -210,37 +296,43 @@ restorecon /etc/named.conf
 Test DNS configuration and zone files for any syntax errors
 
 1. check DNS default configuration file:
-```
+   
+```bash
 named-checkconf /etc/named.conf
 ```
+
 If it returns nothing, your configuration file is valid.
 
 
 2. check forward zone:
-```
+
+```bash
 named-checkzone corp.maks-it.com /var/named/forward.nc
 ```
 
 sample output:
-```
+
+```bash
 zone corp.maks-it.com/IN: loaded serial 2011071001
 OK
 ```
 
 3. check reverse zone:
-```
+
+```bash
 named-checkzone corp.maks-it.com /var/named/reverse.nc
 ```
 
 sample output:
-```
+
+```bash
 zone corp.maks-it.com/IN: loaded serial 2011071001
 OK
 ```
 
 ## Start the DNS service
 
-```
+```bash
 systemctl enable named
 systemctl start named
 ```
@@ -248,7 +340,8 @@ systemctl start named
 ## Add the DNS Server details in your network interface config file
 
 1. edit interface configuration file:
-```
+
+```bash
 nano /etc/sysconfig/network-scripts/ifcfg-ens33
 ```
 
@@ -256,29 +349,33 @@ nano /etc/sysconfig/network-scripts/ifcfg-ens33
 ifcfg-ens33 - your interface name may have different name
 >>>
 Add:
-```
+
+```bash
 DNS1="192.168.0.2"
 ```
 
 2. edit `resolv.conf`:
-```
+   
+```bash
 nano /etc/resolv.conf
 ```
 
 Add the name server ip address:
-```
+
+```bash
 nameserver      192.168.0.1
 ```
 
 Restart network service:
-```
+
+```bash
 systemctl restart network
 ```
 
 
 ## Test DNS Server
 
-```
+```bash
 dig netserver.corp.maks-it.com
 ```
 
@@ -318,8 +415,4 @@ Name:   corp.maks-it.com
 Address: 192.168.0.1
 ```
 
-
-
 Now the Primary DNS server is ready to use.
-
-

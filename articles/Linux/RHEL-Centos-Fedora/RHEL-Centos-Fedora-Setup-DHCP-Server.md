@@ -11,12 +11,10 @@ is managing thousands of systems.
 
 In this tutorial, let us see how to install and configure DHCP Server in CentOS.
 
->>>
-A note of warning: Do not use two or more DHCP servers at the same time in your
-network. The client systems might not be able to get IP addresses from the multiple DHCP
-servers and it leads to IP address conflict issue. If your Router or Switch has DHCP feature
-enabled by default, you need to turn it off too.
->>>
+> A note of warning: Do not use two or more DHCP servers at the same time in your
+> network. The client systems might not be able to get IP addresses from the multiple DHCP
+> servers and it leads to IP address conflict issue. If your Router or Switch has DHCP feature
+> enabled by default, you need to turn it off too.
 
 More importantly, you must a assign a static IP address to your DHCP server’s network
 interface card.
@@ -25,30 +23,41 @@ interface card.
 
 First let us see how to install and configure DHCP server in CentOS 7 64bit.
 Log in as root user.
+
 1. install DHCP server on CentOS system, run:
 
-``` bash
+```bash
 dnf install dhcp-server
 ```
 
 2. copy the sample dhcp configuration file to `/etc/dhcp/` directory.
 
-``` bash
+```bash
 cp /usr/share/doc/dhcp-server/dhcpd.conf.example /etc/dhcp/dhcpd.conf
 ```
 
 3. edit `dhcpd.conf` file
 
-```
+```bash
 nano /etc/dhcp/dhcpd.conf
 ```
 
 ```bash
-
 # dhcpd.conf
 #
 # Configuration file for ISC dhcpd
 #
+
+# configuration of DNS update
+update-static-leases on;
+
+# https://lists.isc.org/pipermail/dhcp-users/2012-March/015039.html
+# it sends an option to the client to tell it that the server
+# will do the DNS updates, rather than the client.
+# prevents
+deny client-updates;
+
+include "/etc/rndc.key";
 
 # option definitions common to all supported networks...
 option domain-name "corp.maks-it.com";
@@ -58,7 +67,9 @@ default-lease-time 600;
 max-lease-time 7200;
 
 # Use this to enble / disable dynamic dns updates globally.
-#ddns-update-style none;
+ddns-update-style interim;
+ddns-domainname "corp.maks-it.com.";
+ddns-rev-domainname "in-addr.arpa.";
 
 # Filename that stores list of active IP lease allocations
 lease-file-name "/var/lib/dhcpd/dhcpd.leases";
@@ -66,6 +77,16 @@ lease-file-name "/var/lib/dhcpd/dhcpd.leases";
 # If this DHCP server is the official DHCP server for the local
 # network, the authoritative directive should be uncommented.
 authoritative;
+
+zone corp.maks-it.com. {
+  primary 127.0.0.1;
+  key rndc-key;
+}
+
+zone 0.0.168.192.in-addr.arpa. {
+  primary 127.0.0.1;
+  key rndc-key;
+}
 
 # Use this to send dhcp log messages to a different log file (you also
 # have to hack syslog.conf to complete the redirection).
@@ -148,7 +169,6 @@ subnet 192.168.0.0 netmask 255.255.255.0 {
 #   }
 # }
 ```
-
 
 ## Star DHCP server
 
