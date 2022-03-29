@@ -1,4 +1,4 @@
-# What is DNS?
+## What is DNS?
 
 The Domain Name Systems (DNS) is the phonebook of the Internet. Humans access information online through domain names, like nytimes.com or espn.com. Web browsers interact through Internet Protocol (IP) addresses. DNS translates domain names to IP addresses so browsers can load Internet resources.
 
@@ -6,35 +6,155 @@ Each device connected to the Internet has a unique IP address which other machin
 
 In this tutorial, let us see how to install and configure DHCP Server in CentOS.
 
-# DNS Servers to configure into the network:
+## DNS Servers to configure into the network:
+
 ```
-Operating System     : CentOS 7
-Hostname             : masterdns.nc.local
-IP Address           : 192.168.0.1/24
+Operating System     : Fedora Server
+Hostname             : netserver.corp.maks-it.com
+IP Address           : 192.168.0.2/24
 ```
 
 ```
 Operating System     : Router
-Hostname             : slavedns.nc.local
-IP Address           : 192.168.0.2/24
+Hostname             : router.corp.maks-it.com
+IP Address           : 192.168.0.1/24
 ```
 
-# Install DHCP Server in CentOS
+## Install DNS Server in RHEL/CentOS/Fedora
 
 1. install DNC server on CentOS system, run:
-```
+
+```bash
 dnf install bind bind-utils -y
 ```
+
 2. configure DNS
-Edit named.conf:
-```
+
+Edit `named.conf`:
+
+```bash
 nano /etc/named.conf
 ```
-3. create Zone files (are necessary to setup forward and reverse zones).
+
+```bash
+//
+// named.conf
+//
+// Provided by Red Hat bind package to configure the ISC BIND named(8) DNS
+// server as a caching only nameserver (as a localhost DNS resolver only).
+//
+// See /usr/share/doc/bind*/sample/ for example named configuration files.
+//
+
+options {
+        listen-on port 53 { 127.0.0.1; 192.168.0.2; };
+        listen-on-v6 port 53 { ::1; };
+        directory       "/var/named";
+        dump-file       "/var/named/data/cache_dump.db";
+        statistics-file "/var/named/data/named_stats.txt";
+        memstatistics-file "/var/named/data/named_mem_stats.txt";
+        recursing-file  "/var/named/data/named.recursing";
+        secroots-file   "/var/named/data/named.secroots";
+        allow-query     { localhost; 192.168.0.0/24; };
+        allow-transfer  { localhost; 192.168.0.1; };
+
+        /*
+         - If you are building an AUTHORITATIVE DNS server, do NOT enable recursion.
+         - If you are building a RECURSIVE (caching) DNS server, you need to enable
+           recursion.
+         - If your recursive DNS server has a public IP address, you MUST enable access
+           control to limit queries to your legitimate users. Failing to do so will
+           cause your server to become part of large scale DNS amplification
+           attacks. Implementing BCP38 within your network would greatly
+           reduce such attack surface
+        */
+        recursion yes;
+
+        dnssec-validation yes;
+
+        managed-keys-directory "/var/named/dynamic";
+        geoip-directory "/usr/share/GeoIP";
+
+        pid-file "/run/named/named.pid";
+        session-keyfile "/run/named/session.key";
+
+        /* https://fedoraproject.org/wiki/Changes/CryptoPolicy */
+        include "/etc/crypto-policies/back-ends/bind.config";
+};
+
+logging {
+        channel default_debug {
+                file "data/named.run";
+                severity dynamic;
+        };
+};
+
+zone "." IN {
+        type hint;
+        file "named.ca";
+};
+
+zone "corp.maks-it.com" IN {
+        type master;
+        file "forward.nc";
+        allow-update { none; };
+};
+
+zone "0.168.192.in-addr.arpa" IN {
+        type master;
+        file "reverse.nc";
+        allow-update { none; };
+};
+
+include "/etc/named.rfc1912.zones";
+include "/etc/named.root.key";
+
+```
+
+1. create Zone files (are necessary to setup forward and reverse zones).
 
 3.1. Forward Zone file:
-```
+
+```bash
 nano /var/named/forward.nc
+```
+
+```
+$TTL 86400
+@       IN  SOA     netserver.corp.maks-it.com. router.corp.maks-it.com. (
+        2011071001  ;Serial
+        3600        ;Refresh
+        1800        ;Retry
+        604800      ;Expire
+        86400       ;Minimum TTL
+)
+
+;Name Servers
+@       IN  NS          netserver.corp.maks-it.com.
+@       IN  NS          router.corp.maks-it.com.
+
+@       IN  A           192.168.0.2
+@       IN  A           192.168.0.1
+
+netserver       IN  A   192.168.0.2
+router        IN  A   192.168.0.1
+
+
+;Other
+srvweb0001      IN  A   192.168.0.3
+srvweb0002      IN  A   192.168.0.6
+srvsql0001      IN  A   192.168.0.4
+
+
+;Mail Server
+srvmta0001      IN  A   192.168.0.5
+@        IN MX  10      srvmta0001.nc.local.
+
+;KMS Server
+srvgen0001      IN  A   192.168.0.1
+_vlmcs._tcp.nc.local. 3600 IN SRV 10 0 1688 srvgen0001.nc.local.
+
+
 ```
 
 3.2 Reverse Zone file:
@@ -42,11 +162,35 @@ nano /var/named/forward.nc
 nano /var/named/reverse.nc
 ```
 
-4. add firewall rules:
+```
+$TTL 86400
+
+@       IN  SOA     netserver.corp.maks-it.com. root.corp.maks-it.com. (
+        2011071001  ;Serial
+        3600        ;Refresh
+        1800        ;Retry
+        604800      ;Expire
+        86400       ;Minimum TTL
+)
+
+@       IN  NS          netserver.corp.maks-it.com.
+@       IN  NS          router.corp.maks-it.com.
+@       IN  PTR         corp.maks-it.com.
+
+netserver       IN  A   192.168.0.2
+router    IN  A   192.168.0.1
+
+101     IN  PTR         netserver.corp.maks-it.com.
+102     IN  PTR         router.corp.maks-it.com.
+
+```
+
+1. add firewall rules:
 ```
 firewall-cmd --permanent --add-port=53/tcp
 firewall-cmd --permanent --add-port=53/udp
 ```
+
 5. restart firewall:
 ```
 firewall-cmd --reload
@@ -61,7 +205,7 @@ restorecon -rv /var/named
 restorecon /etc/named.conf
 ```
 
-# Test DNS Server Configuration Files
+## Test DNS Server Configuration Files
 
 Test DNS configuration and zone files for any syntax errors
 
@@ -74,34 +218,34 @@ If it returns nothing, your configuration file is valid.
 
 2. check forward zone:
 ```
-named-checkzone nc.local /var/named/forward.nc
+named-checkzone corp.maks-it.com /var/named/forward.nc
 ```
 
 sample output:
 ```
-zone nc.local/IN: loaded serial 2011071001
+zone corp.maks-it.com/IN: loaded serial 2011071001
 OK
 ```
 
 3. check reverse zone:
 ```
-named-checkzone nc.local /var/named/reverse.nc
+named-checkzone corp.maks-it.com /var/named/reverse.nc
 ```
 
 sample output:
 ```
-zone nc.local/IN: loaded serial 2011071001
+zone corp.maks-it.com/IN: loaded serial 2011071001
 OK
 ```
 
-# Start the DNS service
+## Start the DNS service
 
 ```
 systemctl enable named
 systemctl start named
 ```
 
-# Add the DNS Server details in your network interface config file
+## Add the DNS Server details in your network interface config file
 
 1. edit interface configuration file:
 ```
@@ -113,7 +257,7 @@ ifcfg-ens33 - your interface name may have different name
 >>>
 Add:
 ```
-DNS1="192.168.0.1"
+DNS1="192.168.0.2"
 ```
 
 2. edit `resolv.conf`:
@@ -132,55 +276,46 @@ systemctl restart network
 ```
 
 
-# Test DNS Server
+## Test DNS Server
 
 ```
-dig masterdns.nc.local
+dig netserver.corp.maks-it.com
 ```
 
-```
-; <<>> DiG 9.9.4-RedHat-9.9.4-14.el7 <<>> masterdns.nc.local
+```bash
+; <<>> DiG 9.16.27-RH <<>> netserver.corp.maks-it.com
 ;; global options: +cmd
 ;; Got answer:
-;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 25179
-;; flags: qr aa rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 2, ADDITIONAL: 2
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 51058
+;; flags: qr aa rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
 
 ;; OPT PSEUDOSECTION:
-; EDNS: version: 0, flags:; udp: 4096
+; EDNS: version: 0, flags:; udp: 1232
+; COOKIE: 4b5d865a6810c82b0100000062435b93faec9e00a4473b07 (good)
 ;; QUESTION SECTION:
-;masterdns.nc.local.    IN    A
+;netserver.corp.maks-it.com.    IN      A
 
 ;; ANSWER SECTION:
-masterdns.nc.local. 86400    IN    A    192.168.0.1
-
-;; AUTHORITY SECTION:
-nc.local.        86400    IN    NS    secondarydns.nc.local.
-nc.local.        86400    IN    NS    masterdns.nc.local.
-
-;; ADDITIONAL SECTION:
-secondarydns.nc.local. 86400 IN    A    192.168.0.2
+netserver.corp.maks-it.com. 86400 IN    A       192.168.0.2
 
 ;; Query time: 0 msec
-;; SERVER: 192.168.0.1#53(192.168.0.1)
-;; WHEN: Wed Aug 20 16:20:46 IST 2018
-;; MSG SIZE  rcvd: 125
+;; SERVER: 192.168.0.2#53(192.168.0.2)
+;; WHEN: Tue Mar 29 21:18:43 CEST 2022
+;; MSG SIZE  rcvd: 99
 ```
 
-
-
-```
-nslookup nc.local
+```bash
+nslookup corp.maks-it.com
 ```
 
+```bash
+Server:         192.168.0.2
+Address:        192.168.0.2#53
 
-```
-erver:        192.168.0.1
-Address:    192.168.0.1#53
-
-Name:    nc.local
-Address: 192.168.0.1
-Name:    nc.local
+Name:   corp.maks-it.com
 Address: 192.168.0.2
+Name:   corp.maks-it.com
+Address: 192.168.0.1
 ```
 
 
