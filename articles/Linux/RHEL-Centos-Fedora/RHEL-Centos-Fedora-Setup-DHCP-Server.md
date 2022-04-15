@@ -51,6 +51,9 @@ nano /etc/dhcp/dhcpd.conf
 # configuration of DNS update
 update-static-leases on;
 
+# When off this will allow the DNS to heal from database inconsistencies more easily, but the cost is that the DHCP server must do many more DNS updates.
+update-optimization off;
+
 # https://lists.isc.org/pipermail/dhcp-users/2012-March/015039.html
 # it sends an option to the client to tell it that the server
 # will do the DNS updates, rather than the client.

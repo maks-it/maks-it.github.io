@@ -69,9 +69,22 @@ Answer
 NOTE: if you are not on the FSU network, you will need to use FSU's Virtual Private Network (VPN) Service . 
 
 Right Click on the Start menu and select Command Prompt (Admin)
-Run the command cscript slmgr.vbs -skms fsu-kms-01.fsu.edu to configure computer for the KMS activation server.
+Run the command
+
+```cmd
+cscript slmgr.vbs -skms fsu-kms-01.fsu.edu
+```
+
+to configure computer for the KMS activation server.
+
 Run comand for the KMS activation server
-Run the command cscript slmgr.vbs -ato to activate the computer with the KMS server.
+Run the command
+
+```cmd
+cscript slmgr.vbs -ato
+```
+
+to activate the computer with the KMS server.
 Run comand KMS server
 Finally run cscript slmgr.vbs -dli to display your license information.
 You should see VOLUME_KMSCLIENT Channel

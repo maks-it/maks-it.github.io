@@ -169,24 +169,20 @@ nano /var/lib/named/forward.nc
 
 ```bash
 $TTL 86400
-@       IN  SOA     netserver.corp.maks-it.com. router.corp.maks-it.com. (
-        2011071001  ;Serial
-        3600        ;Refresh
-        1800        ;Retry
-        604800      ;Expire
-        86400       ;Minimum TTL
+@       IN  SOA     netserver.corp.maks-it.com. root.corp.maks-it.com. (
+        1       ;Serial
+        3600    ;Refresh
+        1800    ;Retry
+        604800  ;Expire
+        86400   ;Minimum TTL
 )
 
 ;Name Servers
 @       IN  NS          netserver.corp.maks-it.com.
-@       IN  NS          router.corp.maks-it.com.
-
 @       IN  A           192.168.0.2
-@       IN  A           192.168.0.1
 
 netserver       IN  A   192.168.0.2
-router        IN  A   192.168.0.1
-
+_vlmcs._tcp.corp.maks-it.com. 3600 IN SRV 10 0 1688 netserver.corp.maks-it.com.
 
 ;Other
 srvweb0001      IN  A   192.168.0.3
@@ -196,11 +192,23 @@ srvsql0001      IN  A   192.168.0.4
 
 ;Mail Server
 srvmta0001      IN  A   192.168.0.5
-@        IN MX  10      srvmta0001.nc.local.
+@        IN MX  10      srvmta0001.corp.maks-it.com.
+```
 
-;KMS Server
-srvgen0001      IN  A   192.168.0.1
-_vlmcs._tcp.nc.local. 3600 IN SRV 10 0 1688 srvgen0001.nc.local.
+```bash
+$ORIGIN .
+$TTL 86400      ; 1 day
+corp.maks-it.com        IN SOA  netserver.corp.maks-it.com. root.corp.maks-it.com. (
+                                1       ; serial
+                                3600    ; refresh (1 hour)
+                                1800    ; retry (30 minutes)
+                                604800  ; expire (1 week)
+                                86400   ; minimum (1 day)
+                                )
+                        NS      netserver.corp.maks-it.com.
+$ORIGIN corp.maks-it.com.
+$TTL 86400      ; 1 day
+netserver               A       192.168.0.2
 ```
 
 5. Reverse Zone file:
@@ -211,24 +219,20 @@ nano /var/lib/named/reverse.nc
 
 ```bash
 $TTL 86400
-
 @       IN  SOA     netserver.corp.maks-it.com. root.corp.maks-it.com. (
-        2011071001  ;Serial
-        3600        ;Refresh
-        1800        ;Retry
-        604800      ;Expire
-        86400       ;Minimum TTL
+        1       ;Serial
+        3600    ;Refresh
+        1800    ;Retry
+        604800  ;Expire
+        86400   ;Minimum TTL
 )
 
 @       IN  NS          netserver.corp.maks-it.com.
-@       IN  NS          router.corp.maks-it.com.
 @       IN  PTR         corp.maks-it.com.
 
 netserver       IN  A   192.168.0.2
-router    IN  A   192.168.0.1
 
 101     IN  PTR         netserver.corp.maks-it.com.
-102     IN  PTR         router.corp.maks-it.com.
 ```
 
 6. Zone files write permissions
