@@ -86,7 +86,7 @@ zone corp.maks-it.com. {
   key rndc-key;
 }
 
-zone 0.0.168.192.in-addr.arpa. {
+zone 168.192.in-addr.arpa. {
   primary 127.0.0.1;
   key rndc-key;
 }

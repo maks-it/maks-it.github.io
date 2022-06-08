@@ -124,6 +124,9 @@ options {
 
         /* https://fedoraproject.org/wiki/Changes/CryptoPolicy */
         include "/etc/crypto-policies/back-ends/bind.config";
+
+        /* https://access.redhat.com/discussions/2816761 */
+        empty-zones-enable no;
 };
 
 logging {
@@ -150,7 +153,7 @@ zone "corp.maks-it.com" IN {
         allow-update { key rndc-key; };
 };
 
-zone "0.168.192.in-addr.arpa" IN {
+zone "168.192.in-addr.arpa" IN {
         type master;
         file "/var/lib/named/reverse.nc";
         allow-update { key rndc-key; };
@@ -209,6 +212,8 @@ corp.maks-it.com        IN SOA  netserver.corp.maks-it.com. root.corp.maks-it.co
 $ORIGIN corp.maks-it.com.
 $TTL 86400      ; 1 day
 netserver               A       192.168.0.2
+$TTL 3600       ; 1 hour
+_vlmcs._tcp             SRV     10 0 1688 netserver
 ```
 
 5. Reverse Zone file:
