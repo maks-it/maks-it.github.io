@@ -149,13 +149,13 @@ controls {
 
 zone "corp.maks-it.com" IN {
         type master;
-        file "/var/lib/named/forward.nc";
+        file "/var/named/forward.nc";
         allow-update { key rndc-key; };
 };
 
 zone "168.192.in-addr.arpa" IN {
         type master;
-        file "/var/lib/named/reverse.nc";
+        file "/var/named/reverse.nc";
         allow-update { key rndc-key; };
 };
 
@@ -167,7 +167,7 @@ include "/etc/named.root.key";
 4. Forward Zone file:
 
 ```bash
-nano /var/lib/named/forward.nc
+nano /var/named/forward.nc
 ```
 
 ```bash
@@ -219,7 +219,7 @@ _vlmcs._tcp             SRV     10 0 1688 netserver
 5. Reverse Zone file:
 
 ```bash
-nano /var/lib/named/reverse.nc
+nano /var/named/reverse.nc
 ```
 
 ```bash
@@ -245,32 +245,32 @@ netserver       IN  A   192.168.0.2
 
 
 ```bash
-sudo chown named:named /var/lib/named -R 
+sudo chown named:named /var/named -R 
 ```
 
 Fix Selinux `named` rules to write on zone files:
 
 ```bash
-semanage fcontext --add --type named_zone_t '/var/lib/named(/.*)?'
-restorecon -rvF /var/lib/named
+semanage fcontext --add --type named_zone_t '/var/named(/.*)?'
+restorecon -rvF /var/named
 ```
 
 check if everything is fine:
 
 ```bash
-semanage fcontext -l | grep '/var/lib/named'
+semanage fcontext -l | grep '/var/named'
 ```
 
 your output should be like this:
 
 ```bash
-/var/lib/named(/.*)?    all files    system_u:object_r:named_zone_t:s0 
+/var/named(/.*)?    all files    system_u:object_r:named_zone_t:s0 
 ```
 
 and
 
 ```bash
-ls -lZ /var/lib/named
+ls -lZ /var/named
 
 total 12
 -rw-r--r--. 1 named named system_u:object_r:named_zone_t:s0  692 Mar 31 21:55 forward.nc

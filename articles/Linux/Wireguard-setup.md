@@ -1,3 +1,11 @@
+
+## Installation
+
+Fedora:
+```
+$ sudo dnf install wireguard-tools -y
+```
+
 First we need to create a private and public key pair for the WireGuard server. Let us cd into /etc/wireguard/ directory using the cd command as follows:
 ## Wireguard VPN server configuration
 

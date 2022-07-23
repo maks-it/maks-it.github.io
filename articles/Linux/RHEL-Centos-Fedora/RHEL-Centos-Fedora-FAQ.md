@@ -463,3 +463,22 @@ fs.inotify.max_user_instances = 524288
 sudo sysctl -p
 
 
+## K10Temp module error
+
+K10Temp module
+Some K10 processors have issues with their temperature sensor. See the k10temp documentation for more information.
+
+On affected machines the module will report "unreliable CPU thermal sensor; monitoring disabled". To force monitoring anyway, you can run the following:
+
+```bash
+rmmod k10temp
+```
+
+```bash
+modprobe k10temp force=1
+```
+Confirm that the sensor is in fact valid and reliable. If it is, can edit `/etc/modprobe.d/k10temp.conf` and add:
+
+```bash
+options k10temp force=1
+```
