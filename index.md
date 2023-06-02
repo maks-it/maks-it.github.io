@@ -10,3 +10,5 @@
 * [Setup Wireguard Gateway](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Wireguard-Gateway.md)
 * [Setup Gitea](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Gitea.md)
 * [Setup KMS](./articles/Linux/Debian/Debian-KMS.md)
+* [Setup Harbor](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Harbor-Setup.md)
+* [Setup Gitlab](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Gitlab-Setup.md)
