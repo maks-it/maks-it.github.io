@@ -187,7 +187,6 @@ skip_if_unavailable=True
 Then install man and man-pages:
 
 ```bash
-
 sudo dnf install -y man man-pages
 ```
 

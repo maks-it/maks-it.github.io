@@ -13,3 +13,4 @@
 * [Setup Harbor](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Harbor-Setup.md)
 * [Setup Gitlab](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Gitlab-Setup.md)
 * [Setup Fedora WSL](./articles/Windows/Windows-WSL-Fedora.md)
+* [Setup Jenkins](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Jenkins-setup.md)
