@@ -12,8 +12,6 @@ sudo dnf install php-fpm php-cli php-mysqlnd php-dom php-imagick php-mbstring ph
 
 ```bash
  php-fpm -v
- 
-
 ```
 
 ```bash

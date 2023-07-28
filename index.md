@@ -15,6 +15,8 @@
 * [Setup Jenkins](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Jenkins-setup.md)
 * [Setup NGINX PHP web server](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Setup-WEB-Server-Nginx-PHP.md)
 
+* [NMCLI](./articles/Linux/RHEL-Centos-Fedora-NMCLI.md)
+
 ## Windows
 
 * [Setup Fedora WSL](./articles/Windows/Windows-WSL-Fedora.md)
