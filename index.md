@@ -13,6 +13,7 @@
 * [Setup Harbor](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Harbor-Setup.md)
 * [Setup Gitlab](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Gitlab-Setup.md)
 * [Setup Jenkins](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Jenkins-setup.md)
+* [Setup NGINX PHP web server](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Setup-WEB-Server-Nginx-PHP.md)
 
 ## Windows
 
