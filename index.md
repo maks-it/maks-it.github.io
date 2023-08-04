@@ -15,7 +15,7 @@
 * [Setup Jenkins](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Jenkins-setup.md)
 * [Setup NGINX PHP web server](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Setup-WEB-Server-Nginx-PHP.md)
 
-* [NMCLI](./articles/Linux/RHEL-Centos-Fedora-NMCLI.md)
+* [NMCLI](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-NMCLI.md)
 
 ## Windows
 
@@ -24,4 +24,5 @@
 ## Development
 * [Interview Junior/Middle developer C#](./articles/Interview-junior-middle-csharp-developer.md)
 * [SQL Server Interview](./articles/SQLServer-interview.md)
+* [SOLID Principles](/articles//Solid-principles.md)
 * [Design Patterns](./articles/DesignPatterns/index.md)
