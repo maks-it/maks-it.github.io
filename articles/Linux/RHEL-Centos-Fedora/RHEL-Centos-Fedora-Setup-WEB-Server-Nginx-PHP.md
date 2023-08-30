@@ -80,40 +80,81 @@ fastcgi_pass unix:/var/run/php-fpm/www.sock;
 
 ``` bash
 server {
-    listen       80;
-    server_name  \<mysite\> www.\<mysite\>;
-    root         /var/www/html/\<mysite\>;
+  listen       80;
+  server_name  \<mysite\> *.\<mysite\>;
+  root         /var/www/html\<mysite\>;
 
-    access_log /var/log/nginx/\<mysite\>-access.log;
-    error_log  /var/log/nginx/\<mysite\>-error.log error;
-    index index.html index.htm index.php;
+  access_log /var/log/nginx/\<mysite\>-access.log;
+  error_log  /var/log/nginx/\<mysite\>-error.log error;
+  index index.html index.htm index.php;
 
-    location / {
-        try_files $uri $uri/ /index.php$is_args$args;
+
+  location /.well-known/acme-challenge {
+    allow all;
+    default_type "text/plain";
+    try_files $uri $uri/ =404;
+    alias  /var/www/html/acme-challenge;
+  }
+
+  # redirect all traffic to https
+  #location / {
+  #  return  301 https://$host$request_uri;
+  #}
+}
+
+server {
+  listen  *:443 http2 ssl;
+
+  server_name \<mysite\> wwww.\<mysite\>;
+  root /var/www/html/\<mysite\>;
+
+  access_log /var/log/nginx/\<mysite\>-access.log;
+  error_log  /var/log/nginx/\<mysite\>-error.log error;
+
+  index index.html index.htm index.php;
+
+  ssl_certificate /var/www/ssl/\<mysite\>/\<mysite\>.crt;
+  ssl_certificate_key /var/www/ssl/\<mysite\>/\<mysite\>.key;
+  ssl_protocols             TLSv1.1 TLSv1.2;
+  ssl_prefer_server_ciphers on;
+  ssl_ciphers               "EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH";
+  ssl_ecdh_curve            secp384r1;
+  ssl_session_cache         shared:SSL:10m;
+  ssl_session_tickets       off;
+  ssl_stapling              on; #ensure your cert is capable
+  ssl_stapling_verify       on; #ensure your cert is capable
+
+  #add_header Strict-Transport-Security "max-age=63072000; includeSubdomains; preload";
+  #add_header X-Frame-Options DENY;
+  #add_header X-Frame-Options SAMEORIGIN;
+  #add_header X-Content-Type-Options nosniff;
+
+  location / {
+    try_files $uri $uri/ /index.php$is_args$args;
+  }
+
+  location ~ [^/]\.php(/|$) {
+    fastcgi_split_path_info ^(.+?\.php)(/.*)$;
+    if (!-f $document_root$fastcgi_script_name) {
+      return 404;
     }
 
-    location ~ [^/]\.php(/|$) {
-        fastcgi_split_path_info ^(.+?\.php)(/.*)$;
-        if (!-f $document_root$fastcgi_script_name) {
-            return 404;
-        }
+    # Mitigate https://httpoxy.org/ vulnerabilities
+    fastcgi_param HTTP_PROXY "";
 
-        # Mitigate https://httpoxy.org/ vulnerabilities
-        fastcgi_param HTTP_PROXY "";
+    # fastcgi_pass 127.0.0.1:9000;
+    fastcgi_pass unix:/var/run/php-fpm/www.sock;
+    fastcgi_index index.php;
 
-        # fastcgi_pass 127.0.0.1:9000;
-        fastcgi_pass unix:/var/run/php-fpm/www.sock;
-        fastcgi_index index.php;
+    # include the fastcgi_param setting
+    include fastcgi_params;
 
-        # include the fastcgi_param setting
-        include fastcgi_params;
-
-        # SCRIPT_FILENAME parameter is used for PHP FPM determining
-        #  the script name. If it is not set in fastcgi_params file,
-        # i.e. /etc/nginx/fastcgi_params or in the parent contexts,
-        # please comment off following line:
-        fastcgi_param  SCRIPT_FILENAME   $document_root$fastcgi_script_name;
-    }
+    # SCRIPT_FILENAME parameter is used for PHP FPM determining
+    #  the script name. If it is not set in fastcgi_params file,
+    # i.e. /etc/nginx/fastcgi_params or in the parent contexts,
+    # please comment off following line:
+    fastcgi_param  SCRIPT_FILENAME   $document_root$fastcgi_script_name;
+  }
 }
 ```
 
