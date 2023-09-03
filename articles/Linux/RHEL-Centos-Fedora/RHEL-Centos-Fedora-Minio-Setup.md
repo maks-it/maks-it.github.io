@@ -3,15 +3,17 @@
 ## Deploy MinIO: Single-Node Multi-Drive
 
 ```bash
-$ mkfs.xfs /dev/sdb -L DISK1
-$ mkfs.xfs /dev/sdc -L DISK2
-$ mkfs.xfs /dev/sdd -L DISK3
-$ mkfs.xfs /dev/sde -L DISK4
+mkfs.xfs /dev/sdb -L DISK1
+mkfs.xfs /dev/sdc -L DISK2
+mkfs.xfs /dev/sdd -L DISK3
+mkfs.xfs /dev/sde -L DISK4
 ```
 
 ```bash
 nano /etc/fstab
 ```
+
+then add following lines
 
 ```bash
 # <file system>  <mount point>  <type>  <options>         <dump>  <pass>
