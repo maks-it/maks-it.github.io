@@ -8,13 +8,15 @@
 * [Setup HDD Spin down](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Spin-down-hdd.md)
 * [Setup Wireguard Server](./articles/Linux/Wireguard-setup.md)
 * [Setup Wireguard Gateway](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Wireguard-Gateway.md)
-* [Setup Gitea](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Gitea.md)
+
 * [Setup KMS](./articles/Linux/Debian/Debian-KMS.md)
-* [Setup Harbor](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Harbor-Setup.md)
+* [Setup Gitea](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Gitea.md)
 * [Setup Gitlab](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Gitlab-Setup.md)
 * [Setup Jenkins](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Jenkins-setup.md)
 * [Setup NGINX PHP web server](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Setup-WEB-Server-Nginx-PHP.md)
+* [Setup Harbor](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Harbor-Setup.md)
 * [Setup Hashicorp Vault server](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-HashiCorpVault.md)
+* [Setup Minio object storage](./articles/Linux/RHEL-Centos-Fedora.RHEL-Centos-Fedora-Minio-Setup.md)
 
 * [NMCLI](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-NMCLI.md)
 
