@@ -46,6 +46,29 @@ useradd -M -r -g minio-user minio-user
 chown minio-user:minio-user /mnt/disk1 /mnt/disk2 /mnt/disk3 /mnt/disk4
 ```
 
+### Enabling TLS
+
+The MinIO server searches the following directory for TLS keys and certificates:
+
+```bash
+${HOME}/.minio/certs
+```
+
+```bash
+mkdir -p /home/minio-user/.minio/certs
+```
+
+```bash
+chown minio-user:minio-user /home/minio-user -R
+```
+
+```bash
+chmod 700 /home/minio-user
+```
+
+Place the TLS certificates for the default domain (e.g. minio.example.net) in the /certs directory, with the private key as `private.key` and public certificate as `public.crt`.
+
+
 ### 3) Create the Environment Variable File
 
 ```bash
