@@ -171,7 +171,7 @@ Console.WriteLine((short)obj); // unable to cast int32 to int16
 Which will output the following code to the console:
 
 ```c#
-var s1 = string.Format ("{0} {1}", "abc", "cba");
+var s1 = string.Format ("{0}{1}", "abc", "cba");
 var s2 = "abc" + "cba";
 var s3 = "abccba";
  
