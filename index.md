@@ -13,10 +13,12 @@
 * [Setup Gitea](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Gitea.md)
 * [Setup Gitlab](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Gitlab-Setup.md)
 * [Setup Jenkins](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Jenkins-setup.md)
+* [Setup Teamcity](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-TeamCity-Setup.md)
 * [Setup NGINX PHP web server](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Setup-WEB-Server-Nginx-PHP.md)
 * [Setup Harbor](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Harbor-Setup.md)
 * [Setup Hashicorp Vault server](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-HashiCorpVault.md)
 * [Setup Minio object storage](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Minio-Setup.md)
+* [Setup RabbitMQ message broker](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-RabbitMQ-setup.md)
 * [Setup Kubernetes](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Setup-k8s.md)
 
 * [NMCLI](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-NMCLI.md)
