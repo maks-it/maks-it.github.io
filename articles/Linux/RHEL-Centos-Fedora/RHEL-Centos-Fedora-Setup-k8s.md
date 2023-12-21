@@ -2,6 +2,8 @@
 
 In this guide we are setting up Kubernetes cluster based on [Production Environment](https://kubernetes.io/docs/setup/production-environment/) setup documentation.
 
+
+
 ## Cluster configuration overview
 
 1 Router:
@@ -10,9 +12,10 @@ In this guide we are setting up Kubernetes cluster based on [Production Environm
 1 Load balancer:
 * k8slbl0001.corp.maks-it.com
 
-2 master nodes:
+3 master nodes:
 * k8smst0001.corp.maks-it.com
 * k8smst0002.corp.maks-it.com
+* k8smst0003.corp.maks-it.com
 
 3 worker nodes:
 * k8swrk0001.corp.maks-it.com
@@ -25,12 +28,12 @@ Load balancer and all nodes must have static IP, so create MAC to IP bindings in
 |Host name	|IP Address	| Distro|
 |--|--|--|
 |rtrsrv0001.corp.maks-it.com|192.168.6.1| PfSense|
-|k8slbl0001.corp.maks-it.com|192.168.6.5| Fedora Server |
-|k8smst0001.corp.maks-it.com|192.168.6.10| Fedora Server |
-|k8smst0002.corp.maks-it.com|192.168.6.11| Fedora Server |
-|k8swrk0001.corp.maks-it.com|192.168.6.20| Fedora Server |
-|k8swrk0002.corp.maks-it.com|192.168.6.21| Fedora Server |
-|k8swrk0003.corp.maks-it.com|192.168.6.22| Fedora Server |
+|k8slbl0001.corp.maks-it.com|192.168.6.5| AlmaLinux |
+|k8smst0001.corp.maks-it.com|192.168.6.10| AlmaLinux |
+|k8smst0002.corp.maks-it.com|192.168.6.11| AlmaLinux |
+|k8swrk0001.corp.maks-it.com|192.168.6.20| AlmaLinux |
+|k8swrk0002.corp.maks-it.com|192.168.6.21| AlmaLinux |
+|k8swrk0003.corp.maks-it.com|192.168.6.22| AlmaLinux |
 
 ## Disable Selinux
 
@@ -117,7 +120,7 @@ In Kubernetes v1.28, with the KubeletCgroupDriverFromCRI feature gate enabled an
 
 ```bash
 sudo dnf -y install dnf-plugins-core
-sudo dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
+sudo dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
 ```
 
 ```bash
@@ -129,7 +132,30 @@ sudo systemctl enable docker --now
 sudo docker run hello-world
 ```
 
+# Change cgroup Driver
+
+```bash
+echo '{
+  "exec-opts": ["native.cgroupdriver=systemd"],
+  "log-driver": "json-file",
+  "log-opts": {
+    "max-size": "100m"
+  },
+  "storage-driver": "overlay2"
+}' | sudo tee /etc/docker/daemon.json > /dev/null
+```
+
+```bash
+sudo systemctl daemon-reload
+```
+
+```bash
+sudo systemctl restart docker
+```
+
 ## Install cri-dockerd
+
+On Fedora server
 
 ```bash
 wget https://github.com/Mirantis/cri-dockerd/releases/download/v0.3.7/cri-dockerd-0.3.7.20231027185657.170103f2-0.fc36.x86_64.rpm
@@ -141,6 +167,42 @@ rpm -ivh cri-dockerd-0.3.7.20231027185657.170103f2-0.fc36.x86_64.rpm
 
 ```bash
 systemctl enable --now cri-docker.socket
+```
+
+
+On AlmaLinux
+
+```bash
+wget https://github.com/Mirantis/cri-dockerd/releases/download/v0.3.8/cri-dockerd-0.3.8.amd64.tgz
+```
+
+```bash
+tar xvf cri-dockerd-0.3.8.amd64.tgz
+```
+
+```bash
+sudo mv cri-dockerd/cri-dockerd /usr/local/bin/
+```
+
+```bash
+cri-dockerd --version
+```
+
+```bash
+wget https://raw.githubusercontent.com/Mirantis/cri-dockerd/master/packaging/systemd/cri-docker.service https://raw.githubusercontent.com/Mirantis/cri-dockerd/master/packaging/systemd/cri-docker.socket
+```
+
+```bash
+sudo mv cri-docker.socket cri-docker.service /etc/systemd/system/
+```
+
+```bash
+sudo sed -i -e 's,/usr/bin/cri-dockerd,/usr/local/bin/cri-dockerd,' /etc/systemd/system/cri-docker.service
+```
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable cri-docker.service
 ```
 
 ## Bootstrapping clusters with kubeadm
@@ -177,7 +239,6 @@ echo '<?xml version="1.0" encoding="utf-8"?>
   <port port="10257" protocol="tcp"/>
 </service>' | sudo tee /etc/firewalld/services/k8s-control-plane.xml > /dev/null
 ```
-
 
 ```bash
 sudo firewall-cmd --zone=public --add-service=k8s-control-plane --permanent
@@ -267,6 +328,7 @@ backend kubernetes-master-nodes
     option tcp-check
     server k8s-master-1 192.168.6.10:6443 check
     server k8s-master-2 192.168.6.11:6443 check
+    server k8s-master-3 192.168.6.12:6443 check
 ```
 
 This configuration sets up a TCP frontend on port 6443 (the Kubernetes API port) and balances traffic using the round-robin algorithm between the two Kubernetes master nodes.
@@ -296,6 +358,8 @@ Enable firewall rules
 
 ## Kubeadm install
 
+Production environment:
+
 ```bash
 # This overwrites any existing configuration in /etc/yum.repos.d/kubernetes.repo
 cat <<EOF | sudo tee /etc/yum.repos.d/kubernetes.repo
@@ -306,6 +370,20 @@ enabled=1
 gpgcheck=1
 gpgkey=https://pkgs.k8s.io/core:/stable:/v1.28/rpm/repodata/repomd.xml.key
 exclude=kubelet kubeadm kubectl cri-tools kubernetes-cni
+EOF
+```
+
+Learning environment:
+
+```bash
+# This overwrites any existing configuration in /etc/yum.repos.d/kubernetes.repo
+cat <<EOF | sudo tee /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://pkgs.k8s.io/core:/stable:/v1.29/rpm/
+enabled=1
+gpgcheck=1
+gpgkey=https://pkgs.k8s.io/core:/stable:/v1.29/rpm/repodata/repomd.xml.key
 EOF
 ```
 
@@ -380,6 +458,7 @@ and service account keys on each node:
 ```
 
 ```bash
+sudo mkdir /etc/kubernetes/pki && \
 sudo cp pki/ca.crt /etc/kubernetes/pki/ca.crt && \
 sudo cp pki/ca.key /etc/kubernetes/pki/ca.key && \
 sudo cp pki/sa.key /etc/kubernetes/pki/sa.key && \

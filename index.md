@@ -8,7 +8,6 @@
 * [Setup HDD Spin down](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Spin-down-hdd.md)
 * [Setup Wireguard Server](./articles/Linux/Wireguard-setup.md)
 * [Setup Wireguard Gateway](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Wireguard-Gateway.md)
-
 * [Setup KMS](./articles/Linux/Debian/Debian-KMS.md)
 * [Setup Gitea](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Gitea.md)
 * [Setup Gitlab](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Gitlab-Setup.md)
@@ -20,8 +19,12 @@
 * [Setup Minio object storage](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Minio-Setup.md)
 * [Setup RabbitMQ message broker](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-RabbitMQ-setup.md)
 * [Setup Kubernetes](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-Setup-k8s.md)
-
 * [NMCLI](./articles/Linux/RHEL-Centos-Fedora/RHEL-Centos-Fedora-NMCLI.md)
+
+## Kubernetes
+
+* [Setup Dapr](./articles/Kubernetes/Kubernetes-Setup-Dapr.md)
+* [Setup ArgoCD](./articles/Kubernetes/Kubernetes-Setup-ArgoCD.md)
 
 ## Windows
 
