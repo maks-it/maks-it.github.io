@@ -1,4 +1,10 @@
-# MAKS-IT free articles
+# MAKS-IT free articles and tutorials
+
+Hello, my name is [Maksym Sadovnychyy](https://www.linkedin.com/in/maksym-sadovnychyy-98b53743/) and I'm full stack software developer. I'm working mostly with c#, js/react, mssql/mongodb. Here I'm publishing arrticles and usefull tutorials I'm using for my daily work.
+
+In case you found something usefull, you know what to do!
+
+[<img src="https://cdn.buymeacoffee.com/buttons/v2/default-blue.png" alt="Buy Me A Coffee" style="height: 60px; width: 217px;">](https://www.buymeacoffee.com/maksitcom)
 
 ## RHEL/CentOS/Fedora
 
@@ -31,7 +37,12 @@
 * [Setup Fedora WSL](./articles/Windows/Windows-WSL-Fedora.md)
 
 ## Development
+
 * [Interview Junior/Middle developer C#](./articles/Interview-junior-middle-csharp-developer.md)
 * [SQL Server Interview](./articles/SQLServer-interview.md)
 * [SOLID Principles](/articles//Solid-principles.md)
 * [Design Patterns](./articles/DesignPatterns/index.md)
+
+## Other
+
+* [Git Tutorial](./articles/Git/Git-Tutorial.md)

@@ -385,7 +385,7 @@ git pull origin master --rebase
 ```
 
 Enable push --force:
-```
+```bash
 $ git push origin master --force
 ```
 
@@ -401,8 +401,8 @@ git pull origin master --allow-unrelated-histories
 
 Reset local repository to remote:
 
->**Important**: If you have any local changes, they will be lost. With or without `--hard` option, any local commits that haven't been pushed will be lost.[*]
-If you have any files that are not tracked by Git (e.g. uploaded user content), these files will not be affected.
+>**Important**: If you have any local changes, they will be lost. With or without `--hard` option, any local commits that haven't been pushed will be lost.[*] <br />
+>If you have any files that are not tracked by Git (e.g. uploaded user content), these files will not be affected.
 
 ```bash
 $ git fetch --all

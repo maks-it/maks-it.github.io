@@ -1,13 +1,14 @@
-# Fedora K8S Setup
+# AlmaLinux K8S Setup
 
 In this guide we are setting up Kubernetes cluster based on [Production Environment](https://kubernetes.io/docs/setup/production-environment/) setup documentation.
-
-
 
 ## Cluster configuration overview
 
 1 Router:
 * rtrsrv0001.corp.maks-it.com
+
+1 NFS server:
+* nfssrv0001.corp.maks-it.com
 
 1 Load balancer:
 * k8slbl0001.corp.maks-it.com
@@ -23,19 +24,31 @@ In this guide we are setting up Kubernetes cluster based on [Production Environm
 * k8swrk0003.corp.maks-it.com
 
 In our scenario we use router in the way to avoid Hosts file maintenance on each node. Router is set up to provide basic newtwork functionality with DNS and DHCP. 
-Load balancer and all nodes must have static IP, so create MAC to IP bindings in DHCP service:
+Load balancer and all k8s nodes must have static IP, so create MAC to IP bindings in DHCP service.
 
-|Host name	|IP Address	| Distro|
+On nfs server personally I have 2 pools:
+
+|Pool name|Raid type|Mount point|Size|
+|--|--|--|--|
+|pool-1|raid1|/storage/pool-1|320Gb|
+|pool-2|raid0|/storage/pool-2|1.5Tb|
+
+`pool-1` will be used as storage for kubernetes cluster.
+
+|Host name|IP Address|Distro|CPUs|RAM|HDD Size|
 |--|--|--|
-|rtrsrv0001.corp.maks-it.com|192.168.6.1| PfSense|
-|k8slbl0001.corp.maks-it.com|192.168.6.5| AlmaLinux |
-|k8smst0001.corp.maks-it.com|192.168.6.10| AlmaLinux |
-|k8smst0002.corp.maks-it.com|192.168.6.11| AlmaLinux |
-|k8swrk0001.corp.maks-it.com|192.168.6.20| AlmaLinux |
-|k8swrk0002.corp.maks-it.com|192.168.6.21| AlmaLinux |
-|k8swrk0003.corp.maks-it.com|192.168.6.22| AlmaLinux |
+|rtrsrv0001.corp.maks-it.com|192.168.6.1|PfSense|1|2Gb|20Gb|
+|nfssrv0001.corp.maks-it.com|DHCP Lease |AlmaLinux|1|2Gb|20Gb|
+|k8slbl0001.corp.maks-it.com|192.168.6.5|AlmaLinux|2|2Gb|20Gb|
+|k8smst0001.corp.maks-it.com|192.168.6.10|AlmaLinux|2|4Gb|200Gb|
+|k8smst0002.corp.maks-it.com|192.168.6.11|AlmaLinux|2|4Gb|200Gb|
+|k8swrk0001.corp.maks-it.com|192.168.6.20|AlmaLinux|2|4Gb|200Gb|
+|k8swrk0002.corp.maks-it.com|192.168.6.21|AlmaLinux|2|4Gb|200Gb|
+|k8swrk0003.corp.maks-it.com|192.168.6.22|AlmaLinux|2|4Gb|200Gb|
 
 ## Disable Selinux
+
+On each `k8s*` node disable selinux
 
 ```bash
 sudo setenforce 0
@@ -44,6 +57,8 @@ sudo sed -i 's/^SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config
 
 ## Disable Swap
 
+On each `k8s*` node disable swap, or perform partitioning without it during system install
+
 * Swap configuration. The default behavior of a kubelet was to fail to start if swap memory was detected on a node. Swap has been supported since v1.22. And since v1.28, Swap is supported for cgroup v2 only; the NodeSwap feature gate of the kubelet is beta but disabled by default.
   * You MUST disable swap if the kubelet is not properly configured to use swap. For example, sudo swapoff -a will disable swapping temporarily. To make this change persistent across reboots, make sure swap is disabled in config files like /etc/fstab, systemd.swap, depending how it was configured on your system.
 
@@ -51,11 +66,13 @@ sudo sed -i 's/^SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config
 swapoff -a && sed -i.bak '/\sswap\s/s/^/#/' /etc/fstab
 ```
 
-On fedora you have to uninstall zram
+In case of fedora server you have to uninstall zram
 
 ```bash
 sudo dnf remove zram-generator-defaults -y
 ```
+
+In My case I used AlmaLinux with regular partitioning without swap and home dir
 
 ## Forwarding IPv4 and letting iptables see bridged traffic 
 
@@ -312,10 +329,7 @@ sudo nano /etc/haproxy/haproxy.cfg
 
 Add the following configuration to the haproxy.cfg file:
 
-plaintext
-Copy code
-
-```cfg
+```bash
 frontend kubernetes
     bind *:6443
     mode tcp
@@ -355,6 +369,97 @@ This configuration should enable HAProxy to balance traffic between your Kuberne
 
 Enable firewall rules
 
+
+## Setting up NFS Server
+
+```bash
+sudo sysemctl enable --now cockpit
+```
+
+Begin by installing the NFS service by running the following command from a terminal window:
+
+```bash
+sudo dnf install rpcbind nfs-utils -y
+```
+
+Open firewall ports
+
+```bash
+firewall-cmd --zone=public --permanent --add-service=mountd
+firewall-cmd --zone=public --permanent --add-service=nfs
+firewall-cmd --zone=public --permanent --add-service=rpc-bind
+firewall-cmd --reload 
+```
+
+Next, configure these services so that they automatically start at boot time:
+
+```bash
+systemctl enable rpcbind nfs-server
+```
+
+Once the services have been enabled, start them as follows:
+
+```bash
+sudo systemctl start rpcbind nfs-server
+```
+
+Add Cockpit plugins to easely manage your shares
+
+```bash
+# dnf or yum
+sudo dnf install https://github.com/45Drives/cockpit-identities/releases/download/v0.1.12/cockpit-identities-0.1.12-1.el8.noarch.rpm
+```
+
+```bash
+# dnf or yum
+sudo dnf install https://github.com/45Drives/cockpit-file-sharing/releases/download/v3.2.9/cockpit-file-sharing-3.2.9-2.el8.noarch.rpm
+```
+
+By default root account is not able to write any on nfs volumes, but as k8s is running as root we need to disable this hardening
+
+```bash
+exportfs -v
+```
+
+```bash
+/storage/pool-1
+                <world>(sync,wdelay,hide,no_subtree_check,sec=sys,rw,secure,root_squash,no_all_squash)
+/storage/pool-2
+                <world>(sync,wdelay,hide,no_subtree_check,sec=sys,rw,secure,root_squash,no_all_squash)
+/storage/pool-1/dapr
+                <world>(sync,wdelay,hide,no_subtree_check,sec=sys,rw,secure,root_squash,no_all_squash)
+```
+
+If you see `root_squash`, edit:
+
+```bash
+nano /etc/exports.d/cockpit-file-sharing.exports
+```
+
+Then add `no_root_squash` to each line, apply changes and restart services:
+
+```bash
+exportfs -ra
+```
+
+```bash
+systemctl restart nfs-server
+```
+
+Verify changes:
+
+```bash
+exportfs -v
+```
+
+```bash
+/storage/pool-1
+                <world>(sync,wdelay,hide,no_subtree_check,sec=sys,rw,secure,no_root_squash,no_all_squash)
+/storage/pool-2
+                <world>(sync,wdelay,hide,no_subtree_check,sec=sys,rw,secure,no_root_squash,no_all_squash)
+/storage/pool-1/dapr
+                <world>(sync,wdelay,hide,no_subtree_check,sec=sys,rw,secure,no_root_squash,no_all_squash)
+```
 
 ## Kubeadm install
 
@@ -424,21 +529,6 @@ You should now deploy a pod network to the cluster.
 Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
   https://kubernetes.io/docs/concepts/cluster-administration/addons/
 
-Download a calico.yaml file:
-
-```yaml
-curl -O -L https://docs.projectcalico.org/manifests/calico.yaml
-```
-
-This calico.yaml file defines an IP pool for Calico to assign IPs to pods in your Kubernetes cluster. It uses VXLAN for encapsulation, enabling networking between pods across nodes in your cluster.
-
-Then, deploy the Calico network to your Kubernetes cluster using the following command:
-
-```yaml
-kubectl apply -f calico.yaml
-```
-
-
 You can now join any number of control-plane nodes by copying certificate authorities
 and service account keys on each node:
 
@@ -489,7 +579,99 @@ sudo kubeadm join 192.168.6.5:6443 --token <token> \
 ```
 
 
-## How to generate new join tokens
+## Kubectl install
+
+```bash
+   curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
+```
+
+Validate the kubectl binary against the checksum file:
+```bash
+echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
+```
+
+If valid, the output is:
+
+```bash
+kubectl: OK
+```
+
+If the check fails, sha256 exits with nonzero status and prints output similar to:
+
+```bash
+kubectl: FAILED
+sha256sum: WARNING: 1 computed checksum did NOT match
+```
+
+>Note: Download the same version of the binary and checksum.
+
+Install kubectl
+
+```bash
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
+```
+
+Copy .kube folder from your server user account to your workstation
+
+## Pod Network Configuration
+
+Configure a pod network to enable the master node to schedule pods.
+
+### Calico
+
+Download and deploy calico.yaml file:
+
+```yaml
+curl -O -L https://docs.projectcalico.org/manifests/calico.yaml
+```
+
+This calico.yaml file defines an IP pool for Calico to assign IPs to pods in your Kubernetes cluster. It uses VXLAN for encapsulation, enabling networking between pods across nodes in your cluster.
+
+Then, deploy the Calico network to your Kubernetes cluster using the following command:
+
+```yaml
+kubectl apply -f calico.yaml
+```
+
+```bash
+kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+```
+
+Check the status of the node:
+
+```bash
+kubectl get nodes
+```
+
+The master node now shows the Ready status.
+
+```bash
+NAME                          STATUS   ROLES           AGE   VERSION
+k8smst0001.corp.maks-it.com   Ready    control-plane   9h    v1.29.0
+k8smst0002.corp.maks-it.com   Ready    control-plane   9h    v1.29.0
+k8smst0003.corp.maks-it.com   Ready    control-plane   9h    v1.29.0
+k8swrk0001.corp.maks-it.com   Ready    <none>          9h    v1.29.0
+k8swrk0002.corp.maks-it.com   Ready    <none>          9h    v1.29.0
+k8swrk0003.corp.maks-it.com   Ready    <none>          9h    v1.29.0
+```
+
+## Appendix
+
+### How force to remove node from cluster
+
+```bash
+kubectl drain <node-name> --ignore-daemonsets --force --delete-local-data
+```
+
+```bash
+kubectl cordon <node-name>
+```
+
+```bash
+kubectl delete node <node-name>
+```
+
+### How to generate new join tokens
 
 Execute the following command on the control plane node to generate a new join token:
 
