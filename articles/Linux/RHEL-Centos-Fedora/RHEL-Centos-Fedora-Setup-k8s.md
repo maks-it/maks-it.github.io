@@ -684,3 +684,87 @@ If you need to get details about the generated token, such as its value and expi
 ```bash
 sudo kubeadm token list
 ```
+
+### How to list all pods' ports within a namespace
+
+```bash
+kubectl get pods --namespace argocd -o=json | jq '.items[] | {name: .metadata.name, containerPorts: .spec.containers[].ports[]?.containerPort}'
+```
+
+### Setup local folder provisioning
+
+```yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: dapr-storage-class
+  namespace: dapr-system  # Assigning StorageClass to dapr-system namespace
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
+```
+
+
+First, create a PersistentVolume that represents the local node folder:
+
+```yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: dapr-storage-pv
+  namespace: dapr-system  # Assigning PersistentVolume to dapr-system namespace
+spec:
+  capacity:
+    storage: 1Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /storage/pool-1/dapr  # Path on the node where the local storage is mounted
+    type: DirectoryOrCreate  # You can use DirectoryOrCreate or Directory
+```
+
+Then, create a PersistentVolumeClaim that references this PersistentVolume:
+
+```yaml
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: dapr-storage-pvc
+  namespace: dapr-system  # Assigning PersistentVolumeClaim to dapr-system namespace
+spec:
+  storageClassName: "dapr-storage-class"
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+```
+
+Once you've created both the PersistentVolume and PersistentVolumeClaim, you can use the PVC in your pod's configuration by referencing the claim name under persistentVolumeClaim in the pod spec.
+
+```yaml
+kind: Pod
+apiVersion: v1
+metadata:
+  name: test-pod
+spec:
+  containers:
+  - name: test-pod
+    image: busybox:latest
+    command: ["/bin/sh"]
+    args: ["-c", "touch /mnt/data/SUCCESS && sleep 600"]
+    volumeMounts:
+      - mountPath: "/mnt/data"
+        name: dapr-storage
+  restartPolicy: "Never"
+  volumes:
+    - name: dapr-storage
+      persistentVolumeClaim:
+        claimName: dapr-storage-pvc
+```
+
+### Login to pod bash
+
+```bash
+kubectl exec --stdin --tty my-release-rabbitmq-0 -n rabbitmq-system -- /bin/bash
+```

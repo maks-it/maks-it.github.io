@@ -1,14 +1,46 @@
-Non-HA:
+# Setup ArgoCD to Kubernetes cluster
+
+```bash
 kubectl create namespace argocd
+```
+
+
+
+Non-HA (High Availability):
+
+```bash
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.9.3/manifests/install.yaml
+```
+
 HA:
-kubectl create namespace argocd
+
+```bash
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.9.3/manifests/ha/install.yaml
+```
+
+> Warning: in case of ha mode not working https://github.com/argoproj/argo-cd/issues/11388
+> But first open necessary ports on each cluster
+
+```bash
+ kubectl logs argocd-redis-ha-server-1 -c config-init -n argocd
+```
+
+## Verify installation
 
 ```bash
 kubectl get pods -n argocd -w
 ```
 
+```bash
+NAME                                               READY   STATUS    RESTARTS   AGE
+argocd-application-controller-0                    1/1     Running   0          7m28s
+argocd-applicationset-controller-5f975ff5-c84bb    1/1     Running   0          7m28s
+argocd-dex-server-5cb44cbfcd-8npb7                 1/1     Running   0          7m28s
+argocd-notifications-controller-566465df76-zl5cb   1/1     Running   0          7m28s
+argocd-redis-69d46564c7-xwdnc                      1/1     Running   0          7m28s
+argocd-repo-server-6d5f959b8f-hn8hb                1/1     Running   0          7m28s
+argocd-server-7b6bb89949-8c5b2                     1/1     Running   0          7m28s
+```
 
 ## Get the initial password:
 
@@ -28,51 +60,8 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.pas
 kubectl port-forward svc/argocd-server -n argocd 8080:443
 ```
 
-
-## Connect via argocdcli
-
-Obtaining the ArgoCD server's hostname is also no big deal using:
-
-
-```bash
-kubectl get service argocd-server -n argocd --output=jsonpath='{.status.loadBalancer.ingress[0].hostname}'
-```
-
-```powershell
-kubectl get service argocd-server -n argocd --output=jsonpath='{.status.loadBalancer.ingress[0].hostname}' | ForEach-Object { $_.Trim("'") }
-
-```
-
-And as the argocd login command has the parameters --username and --password, we can craft our login command like this:
-
-argocd login $(kubectl get service argocd-server -n argocd --output=jsonpath='{.status.loadBalancer.ingress[0].hostname}') --username admin --password $(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo) --insecure
-
-
-
-
-
-
-argocd admin initial-password -n argocd
-Warning
-
-You should delete the argocd-initial-admin-secret from the Argo CD namespace once you changed the password. The secret serves no other purpose than to store the initially generated password in clear and can safely be deleted at any time. It will be re-created on demand by Argo CD if a new admin password must be re-generated.
-
-Using the username admin and the password from above, login to Argo CD's IP or hostname:
-
-
-argocd login <ARGOCD_SERVER>
-Note
-
-The CLI environment must be able to communicate with the Argo CD API server. If it isn't directly accessible as described above in step 3, you can tell the CLI to access it using port forwarding through one of these mechanisms: 1) add --port-forward-namespace argocd flag to every CLI command; or 2) set ARGOCD_OPTS environment variable: export ARGOCD_OPTS='--port-forward-namespace argocd'.
-
-Change the password using the command:
-
-
-argocd account update-password
-
 ## Uninstall
 
 ```bash
 kubectl delete -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.9.3/manifests/ha/install.yaml
-
 ```

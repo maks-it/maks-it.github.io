@@ -26,42 +26,11 @@ helm search repo dapr --devel --versions
 helm search repo dapr/dapr --versions | Select-Object -Skip 1 | ForEach-Object { ($_ -split '\s+')[1] } | Select-Object -First 1
 ```
 
-## Open firewall ports
+## Install the Dapr chart on your cluster in the dapr-system namespace.
 
-|Protocol	|Direction	|Port Range	|Purpose	|Used By|
-|--|--|--|--|--|
-|TCP	|Inbound	|50005|||
-|TCP	|Inbound	|8201||All|
-|TCP	|Inbound	|9091|metrics-port|All|
-|TCP	|Inbound	|8080|healthz|All|
+Create storage class:
 
-
-```bash
-echo '<?xml version="1.0" encoding="utf-8"?>
-<service>
-  <port port="50005" protocol="tcp"/>
-  <port port="8201" protocol="tcp"/>
-  <port port="9091" protocol="tcp"/>
-</service>' | sudo tee /etc/firewalld/services/dapr-placement-service.xml > /dev/null
-```
-
-```bash
-sudo firewall-cmd --zone=public --add-service=dapr-placement-service --permanent
-sudo firewall-cmd --reload
-sudo firewall-cmd --runtime-to-permanent
-```
-
-Later it's possibe to verify ports to open by cheking pods manifests:
-
-```bash
-kubectl get pod dapr-operator-56875b7cb8-jk9nq -n dapr-system -o yaml
-kubectl get pod dapr-placement-server-0 -n dapr-system -o yaml
-kubectl get pod dapr-sentry-d6fc47c95-jq4vj -n dapr-system -o yaml
-kubectl get pod dapr-sidecar-injector-74d44dd96-ccmwl -n dapr-system -o yaml
-```
-
-
-## Setup local folder provisioning
+[Production guidelines on Kubernetes](https://docs.dapr.io/operations/hosting/kubernetes/kubernetes-production/)
 
 ```yaml
 apiVersion: storage.k8s.io/v1
@@ -73,82 +42,10 @@ provisioner: kubernetes.io/no-provisioner
 volumeBindingMode: WaitForFirstConsumer
 ```
 
-
-First, create a PersistentVolume that represents the local node folder:
-
-```yaml
-apiVersion: v1
-kind: PersistentVolume
-metadata:
-  name: dapr-storage-pv
-  namespace: dapr-system  # Assigning PersistentVolume to dapr-system namespace
-spec:
-  capacity:
-    storage: 1Gi
-  volumeMode: Filesystem
-  accessModes:
-    - ReadWriteOnce
-  hostPath:
-    path: /storage/pool-1/dapr  # Path on the node where the local storage is mounted
-    type: DirectoryOrCreate  # You can use DirectoryOrCreate or Directory
-```
-
-Then, create a PersistentVolumeClaim that references this PersistentVolume:
-
-```yaml
-apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: dapr-storage-pvc
-  namespace: dapr-system  # Assigning PersistentVolumeClaim to dapr-system namespace
-spec:
-  storageClassName: "dapr-storage-class"
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
-```
-
-Once you've created both the PersistentVolume and PersistentVolumeClaim, you can use the PVC in your pod's configuration by referencing the claim name under persistentVolumeClaim in the pod spec.
-
-```yaml
-kind: Pod
-apiVersion: v1
-metadata:
-  name: test-pod
-spec:
-  containers:
-  - name: test-pod
-    image: busybox:latest
-    command: ["/bin/sh"]
-    args: ["-c", "touch /mnt/data/SUCCESS && sleep 600"]
-    volumeMounts:
-      - mountPath: "/mnt/data"
-        name: dapr-storage
-  restartPolicy: "Never"
-  volumes:
-    - name: dapr-storage
-      persistentVolumeClaim:
-        claimName: dapr-storage-pvc
-```
-
-## Install the Dapr chart on your cluster in the dapr-system namespace.
-
-```bash
-helm upgrade --install dapr dapr/dapr --version=1.12 --namespace dapr-system
-```
-
-or for High Availability setup
-
-[Production guidelines on Kubernetes](https://docs.dapr.io/operations/hosting/kubernetes/kubernetes-production/)
-
 Create `values.yml` with following content
 
 ```yml
 global:
-  prometheus:
-    port: 9091
   ha:
     enabled: true
 dapr_placement:
@@ -163,16 +60,7 @@ For all availabe options consult [Helm chart readme](https://github.com/dapr/dap
 helm upgrade --install dapr dapr/dapr \
   --version=1.11 \
   --namespace dapr-system \
-  --values values.yml
-```
-
-## Install daprcli
-
-Install from Terminal
-Install the latest Linux Dapr CLI to /usr/local/bin:
-
-```bash
-wget -q https://raw.githubusercontent.com/dapr/cli/master/install/install.sh -O - | /bin/bash
+  --values dapr-values.yml
 ```
 
 ## Verify installation
@@ -352,6 +240,15 @@ dapr-sidecar-injector-74d44dd96-vq8tv   1/1     Running   0             60m
 helm upgrade --install dapr-dashboard dapr/dapr-dashboard --version=0.14 --namespace dapr-system
 ```
 
+## Install daprcli
+
+Install from Terminal
+Install the latest Linux Dapr CLI to /usr/local/bin:
+
+```bash
+wget -q https://raw.githubusercontent.com/dapr/cli/master/install/install.sh -O - | /bin/bash
+```
+
 ## Overall installation status
 
 ```bash
@@ -381,3 +278,42 @@ Now you able to open `http://localhost:8081` and start to use Dapr via its dashb
 helm uninstall dapr -n dapr-system
 helm uninstall dapr-dashboard -n dapr-system
 ```
+
+## Appendix
+
+### Dapr ports
+
+You may check these ports by running this command:
+
+```bash
+kubectl get pods -n dapr-system -o=json | jq '.items[] | {name: .metadata.name, containerPorts: [.spec.containers[].ports[]? | {port: .containerPort, protocol: .protocol}]}'
+```
+
+|Protocol	|Direction	|Port Range	|Purpose	|Used By|
+|--|--|--|--|--|
+|TCP|Inbound|8080||Dashboard|
+
+
+|Protocol	|Direction	|Port Range	|Purpose	|Used By|
+|--|--|--|--|--|
+|TCP|Inbound|6500||Operator|
+|TCP|Inbound|9091||Operator|
+
+
+|Protocol	|Direction	|Port Range	|Purpose	|Used By|
+|--|--|--|--|--|
+|TCP|Inbound|50005||Placement|
+|TCP|Inbound|8201||Placement|
+|TCP|Inbound|9091||Placement|
+
+
+|Protocol	|Direction	|Port Range	|Purpose	|Used By|
+|--|--|--|--|--|
+|TCP|Inbound|50001||Sentry|
+|TCP|Inbound|9091||Sentry|
+
+
+|Protocol	|Direction	|Port Range	|Purpose	|Used By|
+|--|--|--|--|--|
+|TCP|Inbound|4000||Sidecar Injector|
+|TCP|Inbound|9091||Sidecar Injector|
