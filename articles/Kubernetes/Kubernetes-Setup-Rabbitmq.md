@@ -9,7 +9,7 @@ Create rabbitmq-system namespace on your kubernetes cluster
 kubectl create namespace rabbitmq-system
 ```
 
-Create storage class
+Create storage class:
 
 ```yaml
 apiVersion: storage.k8s.io/v1
@@ -21,7 +21,7 @@ provisioner: kubernetes.io/no-provisioner
 volumeBindingMode: WaitForFirstConsumer
 ```
 
-Create values file:
+Create values file for replicaset:
 
 ```yaml
 global:
@@ -38,6 +38,25 @@ auth:
   username: admin
   password: password
   erlangCookie: 1lOBkQT8vBdA4hfoGM8MkgzfEjA27chE
+extraEnvVars:
+  - name: LOG_LEVEL
+    value: error
+image:
+  debug: true
+```
+
+For standalone:
+
+```yaml
+global:
+  storageClass: "rabbitmq-storage-class"
+persistence:
+  size: 1Gi
+volumePermissions:
+  enabled: true
+auth:
+  username: admin
+  password: password
 extraEnvVars:
   - name: LOG_LEVEL
     value: error
@@ -63,9 +82,13 @@ Check persistance volumes to be created
 kubectl get pvc -n rabbitmq-system
 ```
 
+For replicaset:
+
 ```bash
 NAME                         STATUS    VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS             VOLUMEATTRIBUTESCLASS   AGE
 data-my-release-rabbitmq-0   Pending                                      rabbitmq-storage-class   <unset>
+data-my-release-rabbitmq-1   Pending                                      rabbitmq-storage-class   <unset>
+data-my-release-rabbitmq-2   Pending                                      rabbitmq-storage-class   <unset>
 ```
 
 Then create necessary folders on nfs server, add following to your storage yaml
@@ -122,6 +145,37 @@ spec:
   hostPath:
     path: /storage/pool-1/rabbitmq  # Path on the node where the local storage is mounted
     type: DirectoryOrCreate  # You can use DirectoryOrCreate or Directory
+```
+
+For standalone:
+
+```bash
+NAME                         STATUS    VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS             VOLUMEATTRIBUTESCLASS   AGE
+data-my-release-rabbitmq-0   Pending                                      rabbitmq-storage-class   <unset>                 5s
+```
+
+```yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: data-my-release-rabbitmq-0-pv  # Matching the PVC name
+spec:
+  capacity:
+    storage: 1Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain  # This can be adjusted based on your retention policy
+  storageClassName: rabbitmq-storage-class
+  hostPath:
+    path: /storage/pool-1/rabbitmq  # Path on the node where the local storage is mounted
+    type: DirectoryOrCreate  # You can use DirectoryOrCreate or Directory
+```
+
+## Scaling (Replicaset only)
+
+```bash
+kubectl scale statefulset my-release-rabbitmq --replicas=1 -n rabbitmq-system
 ```
 
 ## Port forward

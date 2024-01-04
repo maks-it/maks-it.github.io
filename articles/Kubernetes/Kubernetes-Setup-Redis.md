@@ -1,179 +1,182 @@
 # Kubernetes Setup Redis
 
-## Real World Example: Configuring Redis using a ConfigMap
+[Redis](https://bitnami.com/stack/redis/helm)
+[Redis Chart Docs](https://github.com/bitnami/charts/tree/main/bitnami/redis/#installing-the-chart)
 
-Follow the steps below to configure a Redis cache using data stored in a ConfigMap.
-
-First create a ConfigMap with an empty configuration block:
+Create redis-system namespace on your kubernetes cluster
 
 ```bash
-cat <<EOF >./example-redis-config.yaml
-apiVersion: v1
-kind: ConfigMap
+kubectl create namespace redis-system
+```
+
+Create storage class:
+
+```yaml
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
 metadata:
-  name: redis-config
-data:
-  redis-config: |
-    maxmemory-policy volatile-lru
-    maxmemory 2560gb
-    maxmemory-samples 5
-    timeout 0
-    tcp-keepalive 300
-    auto-aof-rewrite-percentage 100
-    auto-aof-rewrite-min-size 64mb
-    hash-max-ziplist-entries 512
-    hash-max-ziplist-value 64
-    hz 40
-    activerehashing yes
-    aof-rewrite-incremental-fsync yes
-    client-output-buffer-limit normal 0 0 0
-    client-output-buffer-limit slave 256mb 64mb 60
-    client-output-buffer-limit pubsub 32mb 8mb 60
-    save 900 1
-    save 300 10
-    save 60 10000
-    repl-ping-slave-period 10
-    repl-timeout 60
-    min-slaves-to-write 3
-    min-slaves-max-lag 10
-    min-replicas-to-write 3
-    min-replicas-max-lag 10
-EOF
+  name: redis-storage-class
+  namespace: redis-system  # Assigning StorageClass to redis-system namespace
+provisioner: kubernetes.io/no-provisioner
+volumeBindingMode: WaitForFirstConsumer
 ```
 
-Apply the ConfigMap created above, along with a Redis pod manifest:
+Create values file for replication:
+
+```yaml
+global:
+  storageClass: redis-storage-class
+persistence:
+  size: 8Gi
+volumePermissions:
+  enabled: true
+architecture: replication
+
+replica:
+  replicaCount: 3
+
+networkPolicy:
+  enabled: true
+
+sentinel:
+  enabled: true
+  image:
+    debug: true
+
+auth:
+  password: password
+
+extraEnvVars:
+  - name: LOG_LEVEL
+    value: error
+image:
+  debug: true
+```
+
+Standalone:
+
+```yaml
+global:
+  storageClass: redis-storage-class
+persistence:
+  size: 8Gi
+volumePermissions:
+  enabled: true
+architecture: standalone
+auth:
+  password: password
+extraEnvVars:
+  - name: LOG_LEVEL
+    value: error
+image:
+  debug: true
+```
 
 ```bash
-kubectl apply -f example-redis-config.yaml
+helm install my-release oci://registry-1.docker.io/bitnamicharts/redis \
+  --namespace redis-system \
+  --values redis-values.yml
 ```
 
-Download basic redis-pod.yaml
+Check persistance volumes to be created
 
 ```bash
-wget https://raw.githubusercontent.com/kubernetes/website/main/content/en/examples/pods/config/redis-pod.yaml
+kubectl get pvc -n redis-system
 ```
 
-Probably you may need to adjust at least paths on filesystem:
+For replicaset:
+
+```bash
+NAME                                 STATUS    VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS          VOLUMEATTRIBUTESCLASS   AGE
+redis-data-my-release-redis-node-0   Pending                                      redis-storage-class   <unset>                 48s
+redis-data-my-release-redis-replicas-0   Pending                                      redis-storage-class   <unset>                 2m44s
+```
+
+Then create necessary folders on nfs server, add following to your storage yaml
 
 ```yaml
 apiVersion: v1
-kind: Pod
+kind: PersistentVolume
 metadata:
-  name: redis
+  name: redis-data-my-release-redis-master-0-pv  # Matching the PVC name
 spec:
-  containers:
-  - name: redis
-    image: redis:5.0.4
-    command:
-      - redis-server
-      - "/storage/pool-1/redis/redis-master/redis.conf"
-    env:
-    - name: MASTER
-      value: "true"
-    ports:
-    - containerPort: 6379
-    resources:
-      limits:
-        cpu: "0.1"
-    volumeMounts:
-    - mountPath: /storage/pool-1/redis/redis-master-data
-      name: data
-    - mountPath: /storage/pool-1/redis/redis-master
-      name: config
-  volumes:
-    - name: data
-      emptyDir: {}
-    - name: config
-      configMap:
-        name: redis-config
-        items:
-        - key: redis-config
-          path: redis.conf
+  capacity:
+    storage: 8Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain  # This can be adjusted based on your retention policy
+  storageClassName: redis-storage-class
+  hostPath:
+    path: /storage/pool-1/redis  # Path on the node where the local storage is mounted
+    type: DirectoryOrCreate  # You can use DirectoryOrCreate or Directory
 
+---
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: redis-data-my-release-redis-node-0-pv  # Matching the PVC name
+spec:
+  capacity:
+    storage: 8Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain  # This can be adjusted based on your retention policy
+  storageClassName: redis-storage-class
+  hostPath:
+    path: /storage/pool-1/redis  # Path on the node where the local storage is mounted
+    type: DirectoryOrCreate  # You can use DirectoryOrCreate or Directory
 ```
 
-then apply deployment:
+For standalone:
 
 ```bash
-kubectl apply -f redis-pod.yaml
+NAME                                     STATUS    VOLUME   CAPACITY   ACCESS MODES   STORAGECLASS          VOLUMEATTRIBUTESCLASS   AGE
+redis-data-my-release-redis-master-0     Pending                                      redis-storage-class   <unset>                 2m44s
 ```
 
-Examine the created objects:
-
-```bash
-kubectl get pod/redis configmap/redis-config
-```
-
-You should see the following output:
-
-```bash
-NAME        READY   STATUS    RESTARTS   AGE
-pod/redis   1/1     Running   0          93s
-
-NAME                     DATA   AGE
-configmap/redis-config   1      111s
-```
-
-```bash
-kubectl describe configmap/redis-config
-```
-
-```bash
-Name:         redis-config
-Namespace:    default
-Labels:       <none>
-Annotations:  <none>
-
-Data
-====
-redis-config:
-----
-maxmemory-policy volatile-lru
-maxmemory 2560gb
-maxmemory-samples 5
-timeout 0
-tcp-keepalive 300
-auto-aof-rewrite-percentage 100
-auto-aof-rewrite-min-size 64mb
-hash-max-ziplist-entries 512
-hash-max-ziplist-value 64
-hz 40
-activerehashing yes
-aof-rewrite-incremental-fsync yes
-client-output-buffer-limit normal 0 0 0
-client-output-buffer-limit slave 256mb 64mb 60
-client-output-buffer-limit pubsub 32mb 8mb 60
-save 900 1
-save 300 10
-save 60 10000
-repl-ping-slave-period 10
-repl-timeout 60
-min-slaves-to-write 3
-min-slaves-max-lag 10
-min-replicas-to-write 3
-min-replicas-max-lag 10
-
-
-BinaryData
-====
-
-Events:  <none>
-```
-
-Every time you change ConfigMap, you have to recreate pod
-
-```bash
-kubectl delete pod redis
-kubectl apply -f redis-pod.yaml
+```yaml
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: redis-data-my-release-redis-master-0-pv  # Matching the PVC name
+spec:
+  capacity:
+    storage: 8Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain  # This can be adjusted based on your retention policy
+  storageClassName: redis-storage-class
+  hostPath:
+    path: /storage/pool-1/redis  # Path on the node where the local storage is mounted
+    type: DirectoryOrCreate  # You can use DirectoryOrCreate or Directory
 ```
 
 
+## Scaling
+
 ```bash
-kubectl exec -it redis -- redis-cli
+kubectl scale statefulset my-release-rabbitmq --replicas=1 -n rabbitmq-system
 ```
 
-## Uninstall redis
+
+## Port forwarding
 
 ```bash
-kubectl delete pod/redis configmap/redis-config
+ kubectl port-forward --namespace redis-system svc/my-release-redis 6379:6379 &
+    REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli -h 127.0.0.1 -p 6379
+```
+
+```bash
+kubectl port-forward --namespace redis-system svc/my-release-redis-master 6379:6379 &
+    REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli -h 127.0.0.1 -p 6379
+```
+
+## Uninstall chart
+
+```bash
+helm delete my-release --namespace redis-system
 ```

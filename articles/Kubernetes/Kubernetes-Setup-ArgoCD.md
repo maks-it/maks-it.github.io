@@ -18,9 +18,6 @@ HA:
 kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.9.3/manifests/ha/install.yaml
 ```
 
-> Warning: in case of ha mode not working https://github.com/argoproj/argo-cd/issues/11388
-> But first open necessary ports on each cluster
-
 ```bash
  kubectl logs argocd-redis-ha-server-1 -c config-init -n argocd
 ```

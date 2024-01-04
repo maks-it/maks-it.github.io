@@ -330,11 +330,39 @@ sudo nano /etc/haproxy/haproxy.cfg
 Add the following configuration to the haproxy.cfg file:
 
 ```bash
-frontend kubernetes
+frontend kubernetes_http
+    bind *:80
+    mode tcp
+    option tcplog
+    default_backend kubernetes-https-nodes
+
+frontend kubernetes_https
+    bind *:443
+    mode tcp
+    option tcplog
+    default_backend kubernetes-http-nodes
+
+frontend kubernetes_tcp6443
     bind *:6443
     mode tcp
     option tcplog
     default_backend kubernetes-master-nodes
+
+backend kubernetes-http-nodes
+    mode tcp
+    balance roundrobin
+    option tcp-check
+    server k8s-http-1 192.168.6.20:30809 check
+    server k8s-http-2 192.168.6.21:30809 check
+    server k8s-http-3 192.168.6.22:30809 check
+
+backend kubernetes-https-nodes
+    mode tcp
+    balance roundrobin
+    option tcp-check
+    server k8s-https-1 192.168.6.20:31649 check
+    server k8s-https-2 192.168.6.21:31649 check
+    server k8s-https-3 192.168.6.22:31649 check
 
 backend kubernetes-master-nodes
     mode tcp
@@ -502,7 +530,7 @@ sudo systemctl enable --now kubelet
 (Recommended) If you have plans to upgrade this single control-plane kubeadm cluster to high availability you should specify the --control-plane-endpoint to set the shared endpoint for all control-plane nodes. Such an endpoint can be either a DNS name or an IP address of a load-balancer.
 
 ```bash
-sudo kubeadm init --control-plane-endpoint 192.168.6.5 --cri-socket unix:///var/run/cri-dockerd.sock
+sudo kubeadm init --control-plane-endpoint 192.168.6.5 --cri-socket unix:///var/run/cri-dockerd.sock --pod-network-cidr=10.244.0.0/16
 ```
 
 ```bash
@@ -619,23 +647,67 @@ Configure a pod network to enable the master node to schedule pods.
 
 ### Calico
 
-Download and deploy calico.yaml file:
 
-```yaml
-curl -O -L https://docs.projectcalico.org/manifests/calico.yaml
-```
-
-This calico.yaml file defines an IP pool for Calico to assign IPs to pods in your Kubernetes cluster. It uses VXLAN for encapsulation, enabling networking between pods across nodes in your cluster.
-
-Then, deploy the Calico network to your Kubernetes cluster using the following command:
-
-```yaml
-kubectl apply -f calico.yaml
-```
+Install the Tigera Calico operator and custom resource definitions.
 
 ```bash
-kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/tigera-operator.yaml
 ```
+
+>NOTE
+>
+>Due to the large size of the CRD bundle, kubectl apply might exceed request limits. Instead, use kubectl create or kubectl replace.
+
+Install Calico by creating the necessary custom resource. For more information on configuration options available in this manifest, see the installation reference.
+
+```bash
+kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/custom-resources.yaml
+```
+
+>NOTE
+>
+>Before creating this manifest, read its contents and make sure its settings are correct for your environment. For example, you may need to change the default IP pool CIDR to match your pod network CIDR.
+
+Confirm that all of the pods are running with the following command.
+
+```bash
+watch kubectl get pods -n calico-system
+```
+
+Wait until each pod has the STATUS of Running.
+
+>NOTE
+>
+>The Tigera operator installs resources in the calico-system namespace. Other install methods may use the kube-system namespace instead.
+
+Remove the taints on the control plane so that you can schedule pods on it.
+
+```bash
+kubectl taint nodes --all node-role.kubernetes.io/control-plane-
+kubectl taint nodes --all node-role.kubernetes.io/master-
+```
+
+It should return the following.
+
+```bash
+node/<your-hostname> untainted
+```
+
+Confirm that you now have a node in your cluster with the following command.
+
+```bash
+kubectl get nodes -o wide
+```
+
+It should return something like the following.
+
+```bash
+NAME              STATUS   ROLES    AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION    CONTAINER-RUNTIME
+<your-hostname>   Ready    master   52m   v1.12.2   10.128.0.28   <none>        Ubuntu 18.04.1 LTS   4.15.0-1023-gcp   docker://18.6.1
+```
+
+Congratulations! You now have a single-host Kubernetes cluster with Calico.
+
 
 Check the status of the node:
 
@@ -767,4 +839,10 @@ spec:
 
 ```bash
 kubectl exec --stdin --tty my-release-rabbitmq-0 -n rabbitmq-system -- /bin/bash
+```
+
+### Scale replicas
+
+```bash
+kubectl scale statefulset my-release-mongodb --replicas=1 -n mongodb-system
 ```
