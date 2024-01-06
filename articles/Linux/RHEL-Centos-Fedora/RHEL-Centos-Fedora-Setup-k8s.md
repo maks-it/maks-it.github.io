@@ -330,39 +330,24 @@ sudo nano /etc/haproxy/haproxy.cfg
 Add the following configuration to the haproxy.cfg file:
 
 ```bash
-frontend kubernetes_http
+frontend kubernetes-http
     bind *:80
     mode tcp
     option tcplog
-    default_backend kubernetes-https-nodes
+    default_backend http-worker-nodes
 
-frontend kubernetes_https
+frontend kubernetes-https
     bind *:443
     mode tcp
     option tcplog
-    default_backend kubernetes-http-nodes
+    default_backend https-worker-nodes
 
-frontend kubernetes_tcp6443
+
+frontend kubernetes-tcp6443
     bind *:6443
     mode tcp
     option tcplog
     default_backend kubernetes-master-nodes
-
-backend kubernetes-http-nodes
-    mode tcp
-    balance roundrobin
-    option tcp-check
-    server k8s-http-1 192.168.6.20:30809 check
-    server k8s-http-2 192.168.6.21:30809 check
-    server k8s-http-3 192.168.6.22:30809 check
-
-backend kubernetes-https-nodes
-    mode tcp
-    balance roundrobin
-    option tcp-check
-    server k8s-https-1 192.168.6.20:31649 check
-    server k8s-https-2 192.168.6.21:31649 check
-    server k8s-https-3 192.168.6.22:31649 check
 
 backend kubernetes-master-nodes
     mode tcp
@@ -371,6 +356,22 @@ backend kubernetes-master-nodes
     server k8s-master-1 192.168.6.10:6443 check
     server k8s-master-2 192.168.6.11:6443 check
     server k8s-master-3 192.168.6.12:6443 check
+
+backend http-worker-nodes
+    mode tcp
+    balance roundrobin
+    option tcp-check
+    server k8s-worker-1 192.168.6.20:30080 check
+    server k8s-worker-2 192.168.6.21:30080 check
+    server k8s-worker-3 192.168.6.22:30080 check
+
+backend https-worker-nodes
+    mode tcp
+    balance roundrobin
+    option tcp-check
+    server k8s-worker-1 192.168.6.20:30443 check
+    server k8s-worker-2 192.168.6.21:30443 check
+    server k8s-worker-3 192.168.6.22:30443 check
 ```
 
 This configuration sets up a TCP frontend on port 6443 (the Kubernetes API port) and balances traffic using the round-robin algorithm between the two Kubernetes master nodes.
@@ -647,6 +648,51 @@ Configure a pod network to enable the master node to schedule pods.
 
 ### Calico
 
+Calico requires the following ports to be open:
+
+| Configuration | Host(s) | Connection type | Port/protocol |
+| --- | --- | --- | --- |
+| Calico networking (BGP) | All | Bidirectional | TCP 179 |
+| Calico networking with IP-in-IP enabled (default) | All | Bidirectional | IP-in-IP, often represented by its protocol number 4 |
+| Calico networking with VXLAN enabled | All | Bidirectional | UDP 4789 |
+| Calico networking with Typha enabled | Typha agent hosts | Incoming | TCP 5473 (default) |
+| Calico networking with IPv4 Wireguard enabled | All | Bidirectional | UDP 51820 (default) |
+| Calico networking with IPv6 Wireguard enabled | All | Bidirectional | UDP 51821 (default) |
+| flannel networking (VXLAN) | All | Bidirectional | UDP 4789 |
+| All | kube-apiserver host | Incoming | Often TCP 443 or 6443* |
+| etcd datastore | etcd hosts | Incoming | Officially TCP 2379 but can vary |
+
+Please note that these ports might need to be adjusted based on your specific configuration. Always refer to the official [Calico documentation](https://docs.tigera.io/calico/latest/getting-started/kubernetes/requirements) or your network administrator for the most accurate information .
+
+```bash
+echo '<?xml version="1.0" encoding="utf-8"?>
+  <service>
+    <short>k8s-calico</short>
+    <description>Calico is a network policy engine for Kubernetes. This service opens the necessary ports for Calico.</description>
+    <port protocol="tcp" port="179"/>
+    <port protocol="udp" port="4789"/>
+    <port protocol="tcp" port="5473"/>
+    <port protocol="udp" port="51820"/>
+    <port protocol="udp" port="51821"/>
+    <port protocol="tcp" port="443"/>
+    <port protocol="tcp" port="6443"/>
+    <port protocol="tcp" port="2379"/>
+  </service>' | sudo tee /etc/firewalld/services/k8s-calico.xml > /dev/null
+```
+
+Add a direct rule to allow IP-in-IP traffic:
+
+```bash
+sudo firewall-cmd --permanent --direct --add-rule ipv4 filter INPUT 0 -p 4 -j ACCEPT
+```
+
+```bash
+sudo firewall-cmd --zone=public --add-service=k8s-calico --permanent
+sudo firewall-cmd --reload
+sudo firewall-cmd --runtime-to-permanent
+```
+
+Inspired by [Quickstart](https://docs.tigera.io/calico/latest/getting-started/kubernetes/quickstart)
 
 Install the Tigera Calico operator and custom resource definitions.
 
@@ -661,7 +707,13 @@ kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.0
 Install Calico by creating the necessary custom resource. For more information on configuration options available in this manifest, see the installation reference.
 
 ```bash
-kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/custom-resources.yaml
+# Download the file
+wget https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/custom-resources.yaml
+
+# Replace the IP range
+sed -i 's|192.168.0.0/16|10.244.0.0/16|g' custom-resources.yaml
+
+kubectl create -f custom-resources.yaml
 ```
 
 >NOTE
@@ -708,7 +760,6 @@ NAME              STATUS   ROLES    AGE   VERSION   INTERNAL-IP   EXTERNAL-IP   
 
 Congratulations! You now have a single-host Kubernetes cluster with Calico.
 
-
 Check the status of the node:
 
 ```bash
@@ -726,6 +777,52 @@ k8swrk0001.corp.maks-it.com   Ready    <none>          9h    v1.29.0
 k8swrk0002.corp.maks-it.com   Ready    <none>          9h    v1.29.0
 k8swrk0003.corp.maks-it.com   Ready    <none>          9h    v1.29.0
 ```
+
+Test DNS
+
+```bash
+kubectl run busybox --image=busybox --restart=Never --rm -it -- nslookup kubernetes.default
+```
+
+## Mount nfs volumes
+
+## k8s dashboard
+
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
+
+
+service-accout.yaml
+
+```yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: admin-user
+  namespace: kubernetes-dashboard
+```
+
+kubectl create clusterrolebinding admin-user -n kubernetes-dashboard --clusterrole=cluster-admin --serviceaccount=kubernetes-dashboard:admin-user
+
+kubectl -n kubernetes-dashboard describe secret $(kubectl -n kubernetes-dashboard get secret | grep admin-user | awk '{print $1}')
+
+kubectl -n kubernetes-dashboard create token admin-user
+
+
+kubectl proxy
+
+Kubectl will make Dashboard available at http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/.
+
+or use port forwarding
+
+kubectl port-forward -n kubernetes-dashboard service/kubernetes-dashboard 8080:443
+
+
+Clean up and next steps
+Remove the admin ServiceAccount and ClusterRoleBinding.
+
+kubectl -n kubernetes-dashboard delete serviceaccount admin-user
+kubectl -n kubernetes-dashboard delete clusterrolebinding admin-user
+
 
 ## Appendix
 

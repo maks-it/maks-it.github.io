@@ -1,7 +1,7 @@
 # Setup ArgoCD to Kubernetes cluster
 
 ```bash
-kubectl create namespace argocd
+kubectl create namespace argocd-system
 ```
 
 
@@ -9,23 +9,23 @@ kubectl create namespace argocd
 Non-HA (High Availability):
 
 ```bash
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.9.3/manifests/install.yaml
+kubectl apply -n argocd-system -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.9.3/manifests/install.yaml
 ```
 
 HA:
 
 ```bash
-kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.9.3/manifests/ha/install.yaml
+kubectl apply -n argocd-system -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.9.3/manifests/ha/install.yaml
 ```
 
 ```bash
- kubectl logs argocd-redis-ha-server-1 -c config-init -n argocd
+ kubectl logs argocd-redis-ha-server-1 -c config-init -n argocd-system
 ```
 
 ## Verify installation
 
 ```bash
-kubectl get pods -n argocd -w
+kubectl get pods -n argocd-system -w
 ```
 
 ```bash
@@ -44,7 +44,7 @@ argocd-server-7b6bb89949-8c5b2                     1/1     Running   0          
 Execute the following command, replacing <argocd-server-pod> with the name of your ArgoCD server pod:
 
 ```bash
-kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 --decode
+kubectl -n argocd-system get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 --decode
 ```
 
 ```powershell
@@ -54,11 +54,11 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.pas
 ## Port forwarding
 
 ```bash
-kubectl port-forward svc/argocd-server -n argocd 8080:443
+kubectl port-forward svc/argocd-server -n argocd-system 8080:443
 ```
 
 ## Uninstall
 
 ```bash
-kubectl delete -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.9.3/manifests/ha/install.yaml
+kubectl delete -n argocd-system -f https://raw.githubusercontent.com/argoproj/argo-cd/v2.9.3/manifests/ha/install.yaml
 ```

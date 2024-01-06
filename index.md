@@ -33,6 +33,7 @@ In case you found something usefull, you know what to do!
 * [Setup ArgoCD](./articles/Kubernetes/Kubernetes-Setup-ArgoCD.md)
 * [Setup RabbitMQ (Bitnami)](./articles/Kubernetes/Kubernetes-Setup-Rabbitmq.md)
 * [Setup MondoDB (Bitnami)](./articles/Kubernetes/Kubernetes-Setup-MongoDB.md)
+* [Setup Harbor (Bitnami)](./articles/Kubernetes/Kubernetes-Setup-Harbor.md)
 
 ## Windows
 
