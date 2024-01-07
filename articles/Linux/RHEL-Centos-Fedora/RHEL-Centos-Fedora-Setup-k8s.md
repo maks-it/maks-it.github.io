@@ -55,6 +55,13 @@ sudo setenforce 0
 sudo sed -i 's/^SELINUX=enforcing/SELINUX=disabled/' /etc/selinux/config
 ```
 
+## Firewall disable
+
+```bash
+sudo systemctl stop firewalld
+sudo systemctl disable firewalld
+```
+
 ## Disable Swap
 
 On each `k8s*` node disable swap, or perform partitioning without it during system install
@@ -233,6 +240,8 @@ sudo systemctl enable cri-docker.service
 * Full network connectivity between all machines in the cluster (public or private network is fine).
 * Unique hostname, MAC address, and product_uuid for every node. See here for more details.
 * Certain ports are open on your machines. See here for more details.
+
+> Warning: I found that Calico conflicts with firewalld, so I have disabled it at all
 
 Control plane
 
@@ -646,6 +655,23 @@ Copy .kube folder from your server user account to your workstation
 
 Configure a pod network to enable the master node to schedule pods.
 
+```bash
+echo '<?xml version="1.0" encoding="utf-8"?>
+<service>
+  <short>k8s-dns</short>
+  <description>DNS service for Kubernetes. This service opens the necessary ports for DNS.</description>
+  <port protocol="tcp" port="53"/>
+  <port protocol="udp" port="53"/>
+  <port protocol="tcp" port="9153"/>
+  <port protocol="udp" port="9153"/>
+</service>' | sudo tee /etc/firewalld/services/k8s-dns.xml > /dev/null
+```
+
+```bash
+sudo firewall-cmd --zone=public --add-service=k8s-dns --permanent
+sudo firewall-cmd --reload
+```
+
 ### Calico
 
 Calico requires the following ports to be open:
@@ -788,8 +814,9 @@ kubectl run busybox --image=busybox --restart=Never --rm -it -- nslookup kuberne
 
 ## k8s dashboard
 
+```bash
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.7.0/aio/deploy/recommended.yaml
-
+```
 
 service-accout.yaml
 
@@ -801,21 +828,33 @@ metadata:
   namespace: kubernetes-dashboard
 ```
 
+```bash
 kubectl create clusterrolebinding admin-user -n kubernetes-dashboard --clusterrole=cluster-admin --serviceaccount=kubernetes-dashboard:admin-user
+```
 
+```bash
 kubectl -n kubernetes-dashboard describe secret $(kubectl -n kubernetes-dashboard get secret | grep admin-user | awk '{print $1}')
+```
 
+```bash
 kubectl -n kubernetes-dashboard create token admin-user
+```
 
+```bash
+kubectl config set-credentials admin-user --token=
+```
 
+```bash
 kubectl proxy
+```
 
 Kubectl will make Dashboard available at http://localhost:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/.
 
 or use port forwarding
 
+```bash
 kubectl port-forward -n kubernetes-dashboard service/kubernetes-dashboard 8080:443
-
+```
 
 Clean up and next steps
 Remove the admin ServiceAccount and ClusterRoleBinding.
@@ -852,6 +891,12 @@ If you need to get details about the generated token, such as its value and expi
 
 ```bash
 sudo kubeadm token list
+```
+
+### Delete all pvc in namespace
+
+```bash
+kubectl delete pvc --all -n harbor-system
 ```
 
 ### How to list all pods' ports within a namespace

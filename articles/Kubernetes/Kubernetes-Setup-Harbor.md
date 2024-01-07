@@ -5,20 +5,15 @@
 kubectl create namespace harbor-system
 ```
 
-Create storage class:
+Create harbor-values.yml:
 
 ```yaml
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: harbor-storage-class
-  namespace: harbor-system  # Assigning StorageClass to harbor-system namespace
-provisioner: kubernetes.io/no-provisioner
-volumeBindingMode: WaitForFirstConsumer
-```
+volumePermissions:
+  enabled: true
 
-```yaml
-
+postgresql:
+  auth:
+    postgresPassword: password
 ```
 
 
@@ -57,29 +52,119 @@ kubectl run -i --tty --rm debug --namespace=harbor-system --image=busybox --rest
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: harbor-pv
+  name: data-my-release-harbor-trivy-0
 spec:
   capacity:
-    storage: 100Gi
+    storage: 5Gi
   accessModes:
-    - ReadWriteMany
+    - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain
-  storageClassName: harbor-storage-class
+  claimRef:
+    namespace: harbor-system
+    name: data-my-release-harbor-trivy-0
   hostPath:
-    path: /storage/pool-1/harbor  # Path on the node where the local storage is mounted
-    type: DirectoryOrCreate  # You can use DirectoryOrCreate or Directory
+    path: "/storage/pool-1/harbor/trivy"
+
+---
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: data-my-release-postgresql-0
+spec:
+  capacity:
+    storage: 8Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  claimRef:
+    namespace: harbor-system
+    name: data-my-release-postgresql-0
+  hostPath:
+    path: "/storage/pool-1/harbor/postgresql"
+
+---
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: my-release-harbor-jobservice
+spec:
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  claimRef:
+    namespace: harbor-system
+    name: my-release-harbor-jobservice
+  hostPath:
+    path: "/storage/pool-1/harbor/jobservice"
+---
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: my-release-harbor-registry
+spec:
+  capacity:
+    storage: 5Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  claimRef:
+    namespace: harbor-system
+    name: my-release-harbor-registry
+  hostPath:
+    path: "/storage/pool-1/harbor/registry"
+
+---
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: redis-data-my-release-redis-master-0
+spec:
+  capacity:
+    storage: 8Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  claimRef:
+    namespace: harbor-system
+    name: redis-data-my-release-redis-master-0
+  hostPath:
+    path: "/storage/pool-1/harbor/redis"
+     
 ```
 
-
-
+For some reason registry db is not autocreated:
 
 ```bash
-kubectl port-forward --namespace harbor-system svc/my-release-harbor 80:80
+kubectl exec -it svc/my-release-postgresql -- /bin/bash
+```
+
+```bash
+psql -U postgres
+```
+
+```bash
+CREATE DATABASE registry;
+```
+
+```bash
+\q
+exit
+```
+
+## Port forwarding
+
+```bash
+kubectl port-forward --namespace harbor-system svc/my-release-harbor 443:8080
 ```
 
 ## Uninstall chart
 
 ```bash
-kubectl delete pvc --all -n harbor-system
 helm delete my-release --namespace harbor-system 
 ```
