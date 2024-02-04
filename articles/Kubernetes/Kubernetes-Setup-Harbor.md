@@ -157,10 +157,26 @@ CREATE DATABASE registry;
 exit
 ```
 
+## Retrieve admin password
+
+```bash
+echo Password: $(kubectl get secret --namespace harbor-system my-release-harbor-core-envvars -o jsonpath="{.data.HARBOR_ADMIN_PASSWORD}" | base64 -d)
+```
+
+## Kubectl proxy
+
+```bash
+kubectl proxy
+```
+
+```
+http://localhost:8001/api/v1/namespaces/harbor-system/services/https:my-release-harbor:https/proxy/
+```
+
 ## Port forwarding
 
 ```bash
-kubectl port-forward --namespace harbor-system svc/my-release-harbor 443:8080
+kubectl port-forward --namespace harbor-system svc/my-release-harbor 8081:443
 ```
 
 ## Uninstall chart

@@ -274,6 +274,16 @@ NAME                   NAMESPACE    HEALTHY  STATUS   REPLICAS  VERSION  AGE  CR
   dapr-sidecar-injector  dapr-system  True     Running  3         1.11.6   43m  2023-12-25 01:47.15
 ```
 
+## Kubectl proxy
+
+```bash
+kubectl proxy
+```
+
+```
+
+```
+
 ## Port forwarding
 
 ```bash

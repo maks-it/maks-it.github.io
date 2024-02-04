@@ -620,7 +620,7 @@ sudo kubeadm join 192.168.6.5:6443 --token <token> \
 ## Kubectl install
 
 ```bash
-   curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
 ```
 
 Validate the kubectl binary against the checksum file:

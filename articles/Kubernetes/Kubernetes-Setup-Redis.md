@@ -63,8 +63,6 @@ persistence:
 volumePermissions:
   enabled: true
 architecture: standalone
-auth:
-  password: password
 extraEnvVars:
   - name: LOG_LEVEL
     value: error
@@ -137,11 +135,13 @@ NAME                                     STATUS    VOLUME   CAPACITY   ACCESS MO
 redis-data-my-release-redis-master-0     Pending                                      redis-storage-class   <unset>                 2m44s
 ```
 
+kubectl get pvc redis-data-my-release-redis-master-0 -o jsonpath='{.spec.resources.requests.storage}' -n redis-system
+
 ```yaml
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: redis-data-my-release-redis-master-0-pv  # Matching the PVC name
+  name: redis-data-my-release-redis-master-0
 spec:
   capacity:
     storage: 8Gi
@@ -150,6 +150,9 @@ spec:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain  # This can be adjusted based on your retention policy
   storageClassName: redis-storage-class
+  claimRef:
+    namespace: redis-system
+    name: redis-data-my-release-redis-master-0
   hostPath:
     path: /storage/pool-1/redis  # Path on the node where the local storage is mounted
     type: DirectoryOrCreate  # You can use DirectoryOrCreate or Directory
@@ -170,13 +173,44 @@ kubectl scale statefulset my-release-rabbitmq --replicas=1 -n rabbitmq-system
     REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli -h 127.0.0.1 -p 6379
 ```
 
-```bash
-kubectl port-forward --namespace redis-system svc/my-release-redis-master 6379:6379 &
-    REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli -h 127.0.0.1 -p 6379
-```
-
 ## Uninstall chart
 
 ```bash
 helm delete my-release --namespace redis-system
 ```
+
+
+
+
+
+
+
+
+Redis&reg; can be accessed via port 6379 on the following DNS name from within your cluster:
+
+    my-release-redis-master.redis-system.svc.cluster.local
+
+
+
+To get your password run:
+
+    export REDIS_PASSWORD=$(kubectl get secret --namespace redis-system my-release-redis -o jsonpath="{.data.redis-password}" | base64 -d)
+
+To connect to your Redis&reg; server:
+
+1. Run a Redis&reg; pod that you can use as a client:
+
+   kubectl run --namespace redis-system redis-client --restart='Never'  --env REDIS_PASSWORD=$REDIS_PASSWORD  --image docker.io/bitnami/redis:7.2.3-debian-11-r2 --command -- sleep infinity
+
+   Use the following command to attach to the pod:
+
+   kubectl exec --tty -i redis-client \
+   --namespace redis-system -- bash
+
+2. Connect using the Redis&reg; CLI:
+   REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli -h my-release-redis-master
+
+To connect to your database from outside the cluster execute the following commands:
+
+    kubectl port-forward --namespace redis-system svc/my-release-redis-master 6379:6379 &
+    REDISCLI_AUTH="$REDIS_PASSWORD" redis-cli -h 127.0.0.1 -p 6379

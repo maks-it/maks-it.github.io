@@ -158,7 +158,7 @@ data-my-release-rabbitmq-0   Pending                                      rabbit
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: data-my-release-rabbitmq-0-pv  # Matching the PVC name
+  name: data-my-release-rabbitmq-0
 spec:
   capacity:
     storage: 1Gi
@@ -167,6 +167,9 @@ spec:
     - ReadWriteOnce
   persistentVolumeReclaimPolicy: Retain  # This can be adjusted based on your retention policy
   storageClassName: rabbitmq-storage-class
+  claimRef:
+    namespace: rabbitmq-system
+    name: data-my-release-rabbitmq-0
   hostPath:
     path: /storage/pool-1/rabbitmq  # Path on the node where the local storage is mounted
     type: DirectoryOrCreate  # You can use DirectoryOrCreate or Directory
@@ -176,6 +179,22 @@ spec:
 
 ```bash
 kubectl scale statefulset my-release-rabbitmq --replicas=1 -n rabbitmq-system
+```
+
+## Retrieve admin password
+
+```bash
+kubectl get secret --namespace rabbitmq-system my-release-rabbitmq -o jsonpath="{.data.rabbitmq-password}" | base64 --decode
+```
+
+## Kubectl proxy
+
+```bash
+kubectl proxy
+```
+
+```
+http://localhost:8001/api/v1/namespaces/rabbitmq-system/services/my-release-rabbitmq:http-stats/proxy/
 ```
 
 ## Port forward

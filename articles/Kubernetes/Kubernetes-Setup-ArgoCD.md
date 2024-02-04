@@ -19,7 +19,7 @@ kubectl apply -n argocd-system -f https://raw.githubusercontent.com/argoproj/arg
 ```
 
 ```bash
- kubectl logs argocd-redis-ha-server-1 -c config-init -n argocd-system
+kubectl logs argocd-redis-ha-server-1 -c config-init -n argocd-system
 ```
 
 ## Verify installation
@@ -49,6 +49,16 @@ kubectl -n argocd-system get secret argocd-initial-admin-secret -o jsonpath='{.d
 
 ```powershell
 kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | ForEach-Object { [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($_)) }
+```
+
+## Kubectl proxy
+
+```bash
+kubectl proxy
+```
+
+```
+http://localhost:8001/api/v1/namespaces/argocd-system/services/https:argocd-server:https/proxy/
 ```
 
 ## Port forwarding
