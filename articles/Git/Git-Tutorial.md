@@ -437,3 +437,55 @@ Change commit message:
 ```bash
 git commit --amend
 ```
+
+## How to install and use git-filter-repo on windows
+
+Install python
+
+```bash
+pip install git-filter-repo
+```
+
+add to user path
+
+```bash
+C:\\Users\\<YourUsername>\\AppData\\Local\\Programs\\Python\\PythonXX\\Scripts
+```
+
+### Usage
+
+Use command this way:
+
+```bash
+git filter-repo --path sensitive-file.txt --invert-paths
+```
+
+```bash
+git clone --bare C:\\Users\\maksym\\source\\repos\\<MyRepo> C:\\Users\\maksym\\source\\repos\\<MyRepo>_bare
+```
+
+```bash
+cd C:\\Users\\maksym\\source\\repos\\<MyRepo>_bare
+```
+
+```bash
+git filter-repo --path "<MyRepo>/bin" --invert-paths --force
+```
+
+```bash
+git log --stat
+```
+
+```bash
+git remote add origin https://github.com/<username>/<MyRepo>.git
+```
+
+```bash
+git push --force --set-upstream origin clean-branch
+```
+
+then delete main create new main from clean-branch
+
+```bash
+git push --set-upstream origin main --force
+```
